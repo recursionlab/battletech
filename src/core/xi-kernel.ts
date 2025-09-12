@@ -46,6 +46,14 @@ export interface LLMSpec {
     tools?: string[];
     budget?: number;
   };
+  /**
+   * Optional ID of the parent symbol.
+   * - Must refer to an existing symbol within the current context.
+   * - Cannot be self-referential (i.e., parentId !== symbolId).
+   * - Used to establish hierarchical relationships between symbols.
+   * - If omitted, the symbol is considered a root-level entity.
+   */
+  parentId?: string;
 }
 
 export interface LLMResponse {
@@ -284,7 +292,8 @@ export class ΞKernel {
       symbolId,
       task: spec.task || 'Generate content',
       context: spec.context || {},
-      constraints: spec.constraints || {}
+      constraints: spec.constraints || {},
+      parentId: spec.parentId
     };
 
     // Get LLM response (stateless)
@@ -299,15 +308,15 @@ export class ΞKernel {
       timestamp: response.timestamp.toISOString(),
       cost: response.cost,
       tokensUsed: response.tokensUsed,
-      
+
       // I1: Write-through marker
       kernelWritten: true,
-      
+
       // LLM metadata
       justification: response.justification,
       confidence: response.confidence,
       task: fullSpec.task
-    });
+    }, fullSpec.parentId);
 
     // Sync to vector store
     await this.syncToVector(symbol);
@@ -369,7 +378,13 @@ export class ΞKernel {
   /**
    * Create symbol with full provenance (write-through)
    */
-  private createSymbol(id: string, typ: string, payload: any, meta: Record<string, any>): Symbol {
+  private createSymbol(
+    id: string,
+    typ: string,
+    payload: any,
+    meta: Record<string, any>,
+    parentId?: string
+  ): Symbol {
     const symbol: Symbol = {
       id,
       typ,
@@ -379,15 +394,22 @@ export class ΞKernel {
         kernelWritten: true, // I1: Write-through marker
         created: new Date().toISOString()
       },
-      lineage: []
+      lineage: parentId ? [parentId] : []
     };
 
     this.graph.symbols.set(id, symbol);
     this.graph.lastModified = new Date();
-    
+
     // Check invariants after mutation
     this.checkInvariants();
-    
+
+    if (parentId) {
+      this.createEdge(parentId, id, 'parent', 1, {
+        kernelWritten: true,
+        created: new Date().toISOString()
+      });
+    }
+
     return symbol;
   }
 
