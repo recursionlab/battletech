@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Project 119
 
 A modular, well-architected TypeScript project foundation designed to prevent monolithic architecture through clear separation of concerns.
@@ -126,3 +127,7 @@ src/modules/user/
 ---
 
 *This foundation prevents monolithic architecture by design. Each addition should strengthen modularity, not weaken it.*
+=======
+# battletech
+battletech
+>>>>>>> b4ddb3d225ca094363ee5f5913d16f107659c9ac
