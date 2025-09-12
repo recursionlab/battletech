@@ -472,25 +472,68 @@ export class ΞKernel {
     return Buffer.from(JSON.stringify(spec)).toString('base64').slice(0, 16);
   }
 
+  private cloneSymbol(symbol: Symbol): Symbol {
+    return Object.freeze(structuredClone(symbol));
+  }
+
+  private cloneEdge(edge: Edge): Edge {
+    return Object.freeze(structuredClone(edge));
+  }
+
   /**
    * Get current graph state
    */
   getGraph(): ΞGraph {
-    return { ...this.graph };
+    const symbols = new Map<string, Symbol>();
+    for (const [id, symbol] of this.graph.symbols.entries()) {
+      symbols.set(id, this.cloneSymbol(symbol));
+    }
+
+    const edges = new Map<string, Edge[]>();
+    for (const [id, edgeList] of this.graph.edges.entries()) {
+      edges.set(id, edgeList.map((e) => this.cloneEdge(e)));
+    }
+
+    return Object.freeze({
+      symbols: Object.freeze(symbols),
+      edges: Object.freeze(edges),
+      invariantViolations: Object.freeze([...this.graph.invariantViolations]),
+      lastModified: new Date(this.graph.lastModified.getTime())
+    });
   }
 
   /**
    * Get symbol by ID
    */
   getSymbol(id: string): Symbol | undefined {
-    return this.graph.symbols.get(id);
+    const symbol = this.graph.symbols.get(id);
+    return symbol ? this.cloneSymbol(symbol) : undefined;
+  }
+
+  /**
+   * Get all symbols
+   */
+  getSymbols(): ReadonlyArray<Symbol> {
+    return Object.freeze(Array.from(this.graph.symbols.values()).map((s) => this.cloneSymbol(s)));
   }
 
   /**
    * Get edges from symbol
    */
-  getEdges(symbolId: string): Edge[] {
-    return this.graph.edges.get(symbolId) || [];
+  getEdges(symbolId: string): ReadonlyArray<Edge> {
+    const edges = this.graph.edges.get(symbolId);
+    return edges ? Object.freeze(edges.map((e) => this.cloneEdge(e))) : Object.freeze([]);
+  }
+
+  /**
+   * Get all edges in graph
+   */
+  getAllEdges(): ReadonlyArray<Edge> {
+    const all: Edge[] = [];
+    for (const edgeList of this.graph.edges.values()) {
+      all.push(...edgeList.map((e) => this.cloneEdge(e)));
+    }
+    return Object.freeze(all);
   }
 
   /**

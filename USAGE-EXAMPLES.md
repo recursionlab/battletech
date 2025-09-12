@@ -46,6 +46,12 @@ const kernel = new ΞKernel(new TrulyFreeOpenRouterPort({
 🤖 AI: Here's a detailed analysis of remote work advantages and disadvantages...
 ```
 
+### 5. **Inspect Kernel State**
+```typescript
+const symbols = kernel.getSymbols();
+const edges = kernel.getAllEdges();
+```
+
 ## 📋 Common Use Cases
 
 ### 🏢 **Business Knowledge Base**
