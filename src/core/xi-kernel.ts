@@ -104,7 +104,7 @@ export class InvariantEnforcer {
     const violations: string[] = [];
     const warnings: string[] = [];
 
-    for (const rule of this.rules.values()) {
+    for (const rule of Array.from(this.rules.values())) {
       try {
         if (!rule.check(graph)) {
           const message = `${rule.name}: ${rule.message}`;
@@ -131,7 +131,7 @@ export const CoreInvariants = {
     id: 'I1_write_through',
     name: 'Write-Through Kernel',
     check: (graph) => {
-      for (const symbol of Object.values(graph.symbols)) {
+
         if (!symbol.meta.kernelWritten) {
           return false;
         }
@@ -147,7 +147,7 @@ export const CoreInvariants = {
     id: 'I2_provenance',
     name: 'Provenance Tracking',
     check: (graph) => {
-      for (const symbol of Object.values(graph.symbols)) {
+
         const required = ['model', 'promptHash', 'timestamp'];
         if (!required.every(key => key in symbol.meta)) {
           return false;
@@ -164,7 +164,7 @@ export const CoreInvariants = {
     id: 'I3_lineage_closure',
     name: 'Lineage Closure',
     check: (graph) => {
-      for (const edges of Object.values(graph.edges)) {
+
         for (const edge of edges) {
           if (!edge.warrant || Object.keys(edge.warrant).length === 0) {
             return false;
@@ -182,7 +182,7 @@ export const CoreInvariants = {
     id: 'I4_rag_discipline',
     name: 'RAG Discipline',
     check: (graph) => {
-      for (const symbol of Object.values(graph.symbols)) {
+
         if (symbol.meta.vectorEmbedding && !symbol.meta.symbolFirst) {
           return false;
         }
@@ -306,7 +306,7 @@ export class ΞKernel {
     const response = await this.llmPort.prompt(symbolId, fullSpec);
 
     // Create symbol through kernel (stateful write-through)
-    const symbol = this.createSymbol(symbolId, 'llm_generated', response.payload, {
+    const symbol = this.createSymbolInternal(symbolId, 'llm_generated', response.payload, {
       // I2: Provenance tracking
       model: response.model,
       promptHash: this.hashSpec(fullSpec),
@@ -384,13 +384,7 @@ export class ΞKernel {
   /**
    * Create symbol with full provenance (write-through)
    */
-  private createSymbol(
-    id: string,
-    typ: string,
-    payload: any,
-    meta: Record<string, any>,
-    parentId?: string
-  ): Symbol {
+
     const symbol: Symbol = {
       id,
       typ,
@@ -526,6 +520,24 @@ export class ΞKernel {
    */
   getSymbol(id: string): Symbol | undefined {
     return this.graph.symbols.get(id);
+  }
+
+  /**
+   * Create symbol with full provenance (public API)
+   */
+  createSymbol(input: { id: string; typ?: string; payload?: any; meta?: Record<string, any> }): Symbol {
+    const typ = input.typ || 'user_created';
+    const payload = input.payload || null;
+    const meta = {
+      ...input.meta,
+      // Ensure required provenance metadata
+      model: input.meta?.model || 'user',
+      promptHash: input.meta?.promptHash || 'user_created',
+      timestamp: input.meta?.timestamp || new Date().toISOString(),
+      kernelWritten: true
+    };
+    
+    return this.createSymbolInternal(input.id, typ, payload, meta);
   }
 
   /**

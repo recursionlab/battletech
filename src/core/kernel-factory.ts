@@ -49,15 +49,16 @@ export class KernelFactory {
           maxTokens: options.maxTokens || config.openai.maxTokens
         });
 
+
           model: options.model || config.anthropic.model,
           temperature: options.temperature || config.anthropic.temperature,
           maxTokens: options.maxTokens || config.anthropic.maxTokens
         });
 
-        return new ΞKernel(anthropicPort);
 
       case 'mock':
-        return new ΞKernel(new MockLLMPort());
+        const mockProvider = new MockLLMProvider({ provider: 'mock' });
+        return new ΞKernel(new LLMProviderAdapter(mockProvider));
 
       default:
         throw new Error(`Unknown provider: ${options.provider}`);
