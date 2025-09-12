@@ -6,6 +6,8 @@
  */
 
 import { ΞSymbol, ΞPayload, ΞMetadata } from './xi-symbol';
+import { Planner, DefaultPlanner } from './planner';
+import { Auditor, CompletionAuditor } from './auditor';
 
 // === DATA STRUCTURES ===
 
@@ -25,10 +27,17 @@ export interface Edge {
   warrant: Record<string, any>;
 }
 
-export interface ΞGraph {
+interface KernelGraph {
   symbols: Map<string, Symbol>;
   edges: Map<string, Edge[]>;
   invariantViolations: string[];
+  lastModified: Date;
+}
+
+export interface ΞGraph {
+  symbols: Record<string, Symbol>;
+  edges: Record<string, readonly Edge[]>;
+  invariantViolations: readonly string[];
   lastModified: Date;
 }
 
@@ -44,6 +53,14 @@ export interface LLMSpec {
     tools?: string[];
     budget?: number;
   };
+  /**
+   * Optional ID of the parent symbol.
+   * - Must refer to an existing symbol within the current context.
+   * - Cannot be self-referential (i.e., parentId !== symbolId).
+   * - Used to establish hierarchical relationships between symbols.
+   * - If omitted, the symbol is considered a root-level entity.
+   */
+  parentId?: string;
 }
 
 export interface LLMResponse {
@@ -55,6 +72,7 @@ export interface LLMResponse {
   seed?: number;
   cost?: number;
   timestamp: Date;
+  meta?: Record<string, any>;
 }
 
 export interface LLMDelta {
@@ -113,8 +131,7 @@ export const CoreInvariants = {
     id: 'I1_write_through',
     name: 'Write-Through Kernel',
     check: (graph) => {
-      // Check that all symbols have proper provenance
-      for (const symbol of graph.symbols.values()) {
+      for (const symbol of Object.values(graph.symbols)) {
         if (!symbol.meta.kernelWritten) {
           return false;
         }
@@ -130,7 +147,7 @@ export const CoreInvariants = {
     id: 'I2_provenance',
     name: 'Provenance Tracking',
     check: (graph) => {
-      for (const symbol of graph.symbols.values()) {
+      for (const symbol of Object.values(graph.symbols)) {
         const required = ['model', 'promptHash', 'timestamp'];
         if (!required.every(key => key in symbol.meta)) {
           return false;
@@ -147,7 +164,7 @@ export const CoreInvariants = {
     id: 'I3_lineage_closure',
     name: 'Lineage Closure',
     check: (graph) => {
-      for (const edges of graph.edges.values()) {
+      for (const edges of Object.values(graph.edges)) {
         for (const edge of edges) {
           if (!edge.warrant || Object.keys(edge.warrant).length === 0) {
             return false;
@@ -165,7 +182,7 @@ export const CoreInvariants = {
     id: 'I4_rag_discipline',
     name: 'RAG Discipline',
     check: (graph) => {
-      for (const symbol of graph.symbols.values()) {
+      for (const symbol of Object.values(graph.symbols)) {
         if (symbol.meta.vectorEmbedding && !symbol.meta.symbolFirst) {
           return false;
         }
@@ -199,7 +216,10 @@ export class MockLLMPort implements LLMPort {
       model: 'mock-gpt-4',
       seed: Math.floor(Math.random() * 10000),
       cost: 0.003,
-      timestamp: new Date()
+      timestamp: new Date(),
+      meta: {
+        complete: spec.context?.step >= spec.context?.maxSteps
+      }
     };
   }
 
@@ -234,12 +254,18 @@ export class MockLLMPort implements LLMPort {
 // === MAIN KERNEL IMPLEMENTATION ===
 
 export class ΞKernel {
-  private graph: ΞGraph;
+  private graph: KernelGraph;
   private invariantEnforcer: InvariantEnforcer;
   private llmPort: LLMPort;
+  private planner: Planner;
+  private auditor: Auditor;
   private vectorStore: Map<string, number[]> = new Map();
 
-  constructor(llmPort: LLMPort = new MockLLMPort()) {
+  constructor(
+    llmPort: LLMPort = new MockLLMPort(),
+    planner: Planner = new DefaultPlanner(),
+    auditor: Auditor = new CompletionAuditor()
+  ) {
     this.graph = {
       symbols: new Map(),
       edges: new Map(),
@@ -249,7 +275,9 @@ export class ΞKernel {
 
     this.invariantEnforcer = new InvariantEnforcer();
     this.llmPort = llmPort;
-    
+    this.planner = planner;
+    this.auditor = auditor;
+
     this.initializeCoreInvariants();
   }
 
@@ -270,7 +298,8 @@ export class ΞKernel {
       symbolId,
       task: spec.task || 'Generate content',
       context: spec.context || {},
-      constraints: spec.constraints || {}
+      constraints: spec.constraints || {},
+      parentId: spec.parentId
     };
 
     // Get LLM response (stateless)
@@ -285,15 +314,15 @@ export class ΞKernel {
       timestamp: response.timestamp.toISOString(),
       cost: response.cost,
       tokensUsed: response.tokensUsed,
-      
+
       // I1: Write-through marker
       kernelWritten: true,
-      
+
       // LLM metadata
       justification: response.justification,
       confidence: response.confidence,
       task: fullSpec.task
-    });
+    }, fullSpec.parentId);
 
     // Sync to vector store
     await this.syncToVector(symbol);
@@ -355,7 +384,13 @@ export class ΞKernel {
   /**
    * Create symbol with full provenance (write-through)
    */
-  private createSymbol(id: string, typ: string, payload: any, meta: Record<string, any>): Symbol {
+  private createSymbol(
+    id: string,
+    typ: string,
+    payload: any,
+    meta: Record<string, any>,
+    parentId?: string
+  ): Symbol {
     const symbol: Symbol = {
       id,
       typ,
@@ -365,15 +400,22 @@ export class ΞKernel {
         kernelWritten: true, // I1: Write-through marker
         created: new Date().toISOString()
       },
-      lineage: []
+      lineage: parentId ? [parentId] : []
     };
 
     this.graph.symbols.set(id, symbol);
     this.graph.lastModified = new Date();
-    
+
     // Check invariants after mutation
     this.checkInvariants();
-    
+
+    if (parentId) {
+      this.createEdge(parentId, id, 'parent', 1, {
+        kernelWritten: true,
+        created: new Date().toISOString()
+      });
+    }
+
     return symbol;
   }
 
@@ -452,7 +494,7 @@ export class ΞKernel {
    * Check invariants and quarantine violations
    */
   private checkInvariants(): void {
-    const { violations, warnings } = this.invariantEnforcer.check(this.graph);
+    const { violations, warnings } = this.invariantEnforcer.check(this.getGraph());
     
     this.graph.invariantViolations = violations;
     
@@ -473,10 +515,10 @@ export class ΞKernel {
   }
 
   /**
-   * Get current graph state
+   * Get current graph state snapshot (read-only)
    */
   getGraph(): ΞGraph {
-    return { ...this.graph };
+
   }
 
   /**
@@ -503,27 +545,38 @@ export class ΞKernel {
   }> {
     let steps = 0;
     const goal = this.getSymbol(goalId);
-    
+
     if (!goal) {
       throw new Error(`Goal symbol ${goalId} not found`);
     }
 
     while (steps < maxSteps) {
       steps++;
-      
-      // Pick next action (simplified planner)
-      const spec: LLMSpec = {
-        symbolId: goalId,
-        task: `Step ${steps} toward goal: ${JSON.stringify(goal.payload)}`,
-        context: { step: steps, maxSteps },
-        constraints: { maxTokens: 500, temperature: 0.7 }
-      };
 
-      // Execute through ports
-      const response = await this.prompt(`${goalId}_step_${steps}`, spec);
-      
-      // Check if goal is satisfied (simplified)
-      if (response.payload && response.payload.toString().includes('COMPLETE')) {
+      const plan = this.planner.propose({ goal, graph: this.graph, step: steps, maxSteps });
+
+      const response = await this.llmPort.prompt(plan.symbolId, plan);
+
+      const audit = this.auditor.audit(response);
+
+      if (audit.approved) {
+        const symbol = this.createSymbol(plan.symbolId, 'llm_generated', response.payload, {
+          model: response.model,
+          promptHash: this.hashSpec(plan),
+          seed: response.seed,
+          timestamp: response.timestamp.toISOString(),
+          cost: response.cost,
+          tokensUsed: response.tokensUsed,
+          kernelWritten: true,
+          justification: response.justification,
+          confidence: response.confidence,
+          task: plan.task,
+          ...(response.meta || {})
+        });
+        await this.syncToVector(symbol);
+      }
+
+      if (audit.complete) {
         break;
       }
     }
