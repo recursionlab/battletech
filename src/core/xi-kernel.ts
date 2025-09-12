@@ -482,6 +482,19 @@ export class ΞKernel {
    * Get current graph state
    */
   getGraph(): ΞGraph {
+    // Deep freeze utility
+    function deepFreeze<T>(obj: T): T {
+      if (obj === null || typeof obj !== 'object') return obj;
+      Object.getOwnPropertyNames(obj).forEach((prop) => {
+        // @ts-ignore
+        const value = obj[prop];
+        if (value && typeof value === 'object') {
+          deepFreeze(value);
+        }
+      });
+      return Object.freeze(obj);
+    }
+
     const symbols: Record<string, Symbol> = {};
     for (const [id, symbol] of this.graph.symbols.entries()) {
       const clone: Symbol = {
@@ -492,11 +505,11 @@ export class ΞKernel {
         lineage: [...symbol.lineage]
       };
       if (typeof clone.payload === 'object' && clone.payload !== null) {
-        Object.freeze(clone.payload);
+        clone.payload = deepFreeze(clone.payload);
       }
-      Object.freeze(clone.meta);
-      Object.freeze(clone.lineage);
-      symbols[id] = Object.freeze(clone);
+      deepFreeze(clone.meta);
+      deepFreeze(clone.lineage);
+      symbols[id] = deepFreeze(clone);
     }
 
     const edges: Record<string, readonly Edge[]> = {};
