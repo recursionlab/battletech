@@ -53,7 +53,10 @@ class EnvironmentConfig {
         apiKey: env.OPENROUTER_API_KEY,
         model: env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha',
         temperature: parseFloat(env.OPENROUTER_TEMPERATURE || '0.7'),
-        maxTokens: parseInt(env.OPENROUTER_MAX_TOKENS || '2000'),
+        maxTokens: (() => {
+          const parsed = parseInt(env.OPENROUTER_MAX_TOKENS || '2000', 10);
+          return Number.isInteger(parsed) && parsed > 0 ? parsed : 2000;
+        })(),
         siteName: env.OPENROUTER_SITE_NAME || 'ΞKernel'
       },
       openai: {
