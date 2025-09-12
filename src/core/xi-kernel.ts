@@ -34,11 +34,7 @@ interface KernelGraph {
   lastModified: Date;
 }
 
-export interface ΞGraph {
-  symbols: Record<string, Symbol>;
-  edges: Record<string, readonly Edge[]>;
-  invariantViolations: readonly string[];
-  lastModified: Date;
+
 }
 
 // === LLM INTERFACE TYPES ===
@@ -511,7 +507,6 @@ export class ΞKernel {
   /**
    * Get current graph state snapshot (read-only)
    */
-  getGraph(): ΞGraph {
 
   }
 
