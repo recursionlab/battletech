@@ -5,11 +5,10 @@
  */
 
 import { ΞKernel, MockLLMPort } from './xi-kernel';
-import { OpenAIPort } from './llm-providers/openai-port';
-import { AnthropicPort } from './llm-providers/anthropic-port';
+
 import { envConfig } from '../config/environment';
 
-export type ProviderType = 'openai' | 'anthropic' | 'mock';
+export type ProviderType = 'openai' | 'anthropic' | 'openrouter' | 'mock';
 
 export interface KernelFactoryOptions {
   provider: ProviderType;
@@ -28,31 +27,32 @@ export class KernelFactory {
     const config = envConfig.getConfig();
 
     switch (options.provider) {
+      case 'openrouter':
+        const openrouterProvider = new OpenRouterProvider({
+          provider: 'openrouter',
+          model: options.model || config.openrouter.model,
+          temperature: options.temperature || config.openrouter.temperature,
+          maxTokens: options.maxTokens || config.openrouter.maxTokens,
+          apiKey: options.apiKey || config.openrouter.apiKey || '',
+          siteName: config.openrouter.siteName
+        });
+
+        if (!openrouterProvider['apiKey']) {
+          throw new Error('OpenRouter API key is required. Set OPENROUTER_API_KEY environment variable.');
+        }
+
+        return new ΞKernel(openrouterProvider);
       case 'openai':
-        const openaiPort = new OpenAIPort({
-          apiKey: options.apiKey || config.openai.apiKey || '',
+
           model: options.model || config.openai.model,
           temperature: options.temperature || config.openai.temperature,
           maxTokens: options.maxTokens || config.openai.maxTokens
         });
 
-        if (!(openaiPort as any).apiKey) {
-          throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable.');
-        }
-
-        return new ΞKernel(openaiPort);
-
-      case 'anthropic':
-        const anthropicPort = new AnthropicPort({
-          apiKey: options.apiKey || config.anthropic.apiKey || '',
           model: options.model || config.anthropic.model,
           temperature: options.temperature || config.anthropic.temperature,
           maxTokens: options.maxTokens || config.anthropic.maxTokens
         });
-
-        if (!(anthropicPort as any).apiKey) {
-          throw new Error('Anthropic API key is required. Set ANTHROPIC_API_KEY environment variable.');
-        }
 
         return new ΞKernel(anthropicPort);
 
@@ -77,8 +77,11 @@ export class KernelFactory {
 
     const availableProviders = envConfig.getAvailableProviders();
     
-    // Prefer OpenAI, fallback to Anthropic, then mock
-    if (availableProviders.includes('openai')) {
+    // Prefer OpenRouter, fallback to OpenAI, then Anthropic, then mock
+    if (availableProviders.includes('openrouter')) {
+      console.log('🤖 Using OpenRouter provider');
+      return this.create({ provider: 'openrouter' });
+    } else if (availableProviders.includes('openai')) {
       console.log('🤖 Using OpenAI provider');
       return this.create({ provider: 'openai' });
     } else if (availableProviders.includes('anthropic')) {
