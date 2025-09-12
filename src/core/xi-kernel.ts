@@ -473,10 +473,19 @@ export class ΞKernel {
   }
 
   /**
-   * Get current graph state
+   * Get current graph state snapshot (read-only)
    */
   getGraph(): ΞGraph {
-    return { ...this.graph };
+    return {
+      symbols: new Map(
+        Array.from(this.graph.symbols.entries(), ([id, sym]) => [id, structuredClone(sym)])
+      ),
+      edges: new Map(
+        Array.from(this.graph.edges.entries(), ([id, list]) => [id, list.map(e => structuredClone(e))])
+      ),
+      invariantViolations: [...this.graph.invariantViolations],
+      lastModified: new Date(this.graph.lastModified.getTime())
+    };
   }
 
   /**
