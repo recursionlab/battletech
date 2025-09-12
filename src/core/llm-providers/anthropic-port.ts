@@ -82,7 +82,11 @@ export class AnthropicPort implements LLMPort {
         metadata: { requestId: data.id, symbolId, provider: 'anthropic' }
       };
     } catch (error: any) {
-      throw new Error(`Anthropic API failed: ${error.message}`);
+      const errorMessage =
+        error && typeof error === 'object' && 'message' in error
+          ? error.message
+          : String(error);
+      throw new Error(`Anthropic API failed: ${errorMessage}`);
     }
   }
 
