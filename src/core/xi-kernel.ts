@@ -25,10 +25,17 @@ export interface Edge {
   warrant: Record<string, any>;
 }
 
-export interface ΞGraph {
+interface KernelGraph {
   symbols: Map<string, Symbol>;
   edges: Map<string, Edge[]>;
   invariantViolations: string[];
+  lastModified: Date;
+}
+
+export interface ΞGraph {
+  symbols: Record<string, Symbol>;
+  edges: Record<string, readonly Edge[]>;
+  invariantViolations: readonly string[];
   lastModified: Date;
 }
 
@@ -113,8 +120,7 @@ export const CoreInvariants = {
     id: 'I1_write_through',
     name: 'Write-Through Kernel',
     check: (graph) => {
-      // Check that all symbols have proper provenance
-      for (const symbol of graph.symbols.values()) {
+      for (const symbol of Object.values(graph.symbols)) {
         if (!symbol.meta.kernelWritten) {
           return false;
         }
@@ -130,7 +136,7 @@ export const CoreInvariants = {
     id: 'I2_provenance',
     name: 'Provenance Tracking',
     check: (graph) => {
-      for (const symbol of graph.symbols.values()) {
+      for (const symbol of Object.values(graph.symbols)) {
         const required = ['model', 'promptHash', 'timestamp'];
         if (!required.every(key => key in symbol.meta)) {
           return false;
@@ -147,7 +153,7 @@ export const CoreInvariants = {
     id: 'I3_lineage_closure',
     name: 'Lineage Closure',
     check: (graph) => {
-      for (const edges of graph.edges.values()) {
+      for (const edges of Object.values(graph.edges)) {
         for (const edge of edges) {
           if (!edge.warrant || Object.keys(edge.warrant).length === 0) {
             return false;
@@ -165,7 +171,7 @@ export const CoreInvariants = {
     id: 'I4_rag_discipline',
     name: 'RAG Discipline',
     check: (graph) => {
-      for (const symbol of graph.symbols.values()) {
+      for (const symbol of Object.values(graph.symbols)) {
         if (symbol.meta.vectorEmbedding && !symbol.meta.symbolFirst) {
           return false;
         }
@@ -234,7 +240,7 @@ export class MockLLMPort implements LLMPort {
 // === MAIN KERNEL IMPLEMENTATION ===
 
 export class ΞKernel {
-  private graph: ΞGraph;
+  private graph: KernelGraph;
   private invariantEnforcer: InvariantEnforcer;
   private llmPort: LLMPort;
   private vectorStore: Map<string, number[]> = new Map();
@@ -452,7 +458,7 @@ export class ΞKernel {
    * Check invariants and quarantine violations
    */
   private checkInvariants(): void {
-    const { violations, warnings } = this.invariantEnforcer.check(this.graph);
+    const { violations, warnings } = this.invariantEnforcer.check(this.getGraph());
     
     this.graph.invariantViolations = violations;
     
@@ -476,7 +482,47 @@ export class ΞKernel {
    * Get current graph state
    */
   getGraph(): ΞGraph {
-    return { ...this.graph };
+    const symbols: Record<string, Symbol> = {};
+    for (const [id, symbol] of this.graph.symbols.entries()) {
+      const clone: Symbol = {
+        id: symbol.id,
+        typ: symbol.typ,
+        payload: symbol.payload,
+        meta: { ...symbol.meta },
+        lineage: [...symbol.lineage]
+      };
+      if (typeof clone.payload === 'object' && clone.payload !== null) {
+        Object.freeze(clone.payload);
+      }
+      Object.freeze(clone.meta);
+      Object.freeze(clone.lineage);
+      symbols[id] = Object.freeze(clone);
+    }
+
+    const edges: Record<string, readonly Edge[]> = {};
+    for (const [id, edgeList] of this.graph.edges.entries()) {
+      edges[id] = edgeList.map(edge => {
+        const clone: Edge = {
+          src: edge.src,
+          dst: edge.dst,
+          rel: edge.rel,
+          weight: edge.weight,
+          warrant: { ...edge.warrant }
+        };
+        Object.freeze(clone.warrant);
+        return Object.freeze(clone);
+      });
+      Object.freeze(edges[id]);
+    }
+
+    const snapshot: ΞGraph = {
+      symbols: Object.freeze(symbols),
+      edges: Object.freeze(edges),
+      invariantViolations: Object.freeze([...this.graph.invariantViolations]),
+      lastModified: new Date(this.graph.lastModified.getTime())
+    };
+
+    return Object.freeze(snapshot);
   }
 
   /**
