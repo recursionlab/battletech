@@ -150,7 +150,19 @@ export class AnthropicPort implements LLMPort {
     const text = typeof payload === 'string' ? payload : JSON.stringify(payload);
     const request: AnthropicEmbeddingRequest = { model: 'claude-3-sonnet-20240229', input: text };
     const response = await this.makeEmbeddingCall(request);
-    return response.embeddings[0]?.embedding || [];
+
+    if (
+      !response ||
+      !Array.isArray(response.embeddings) ||
+      response.embeddings.length === 0 ||
+      !Array.isArray(response.embeddings[0]?.embedding) ||
+      response.embeddings[0].embedding.length === 0
+    ) {
+      console.warn('Anthropic embedding response is missing or malformed:', response);
+      throw new Error('Failed to retrieve valid embedding from Anthropic API');
+    }
+
+    return response.embeddings[0].embedding;
   }
 
   private buildSystemPrompt(symbolId: string, spec: LLMSpec): string {
