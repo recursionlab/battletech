@@ -4,7 +4,7 @@
  * Real LLM provider that connects to Anthropic's Claude API
  */
 
-import { LLMProvider, LLMResponse, SymbolicContext, LLMConfig } from '../xi-llm-agent';
+import { LLMProvider, AgentLLMResponse, SymbolicContext, LLMConfig } from '../xi-llm-agent';
 
 interface AnthropicMessage {
   role: 'user' | 'assistant';
@@ -93,6 +93,51 @@ export class AnthropicProvider extends LLMProvider {
     }
   }
 
+  /**
+   * Placeholder for critique operation
+   */
+  async critique(
+    symbolId: string,
+    target: Record<string, any>
+  ): Promise<LLMResponse[]> {
+    console.warn('Anthropic critique not fully implemented; returning placeholder');
+    return [
+      {
+        content: 'Critique operation not supported yet',
+        reasoning: 'Anthropic provider lacks critique endpoint',
+        confidence: 0,
+        metadata: { symbolId, target, unsupported: true }
+      }
+    ];
+  }
+
+  /**
+   * Placeholder for link analysis
+   */
+  async link(
+    symbolA: string,
+    symbolB: string,
+    relationSpec: string
+  ): Promise<{ relation: string; confidence: number }[]> {
+    console.warn('Anthropic link not fully implemented; returning placeholder');
+    return [
+      {
+        relation: relationSpec,
+        confidence: 0
+      }
+    ];
+  }
+
+  /**
+   * Placeholder for embedding generation
+   */
+  async embed(payload: any): Promise<number[]> {
+    console.warn('Anthropic embed not fully implemented; returning placeholder vector');
+    const text = JSON.stringify(payload);
+    const hash = this.simpleHash(text);
+    return Array(256).fill(0).map((_, i) => Math.sin(hash + i) * 0.5);
+  }
+
   private buildSystemPrompt(systemPrompt: string | undefined, context: SymbolicContext): string {
     const basePrompt = systemPrompt || 'You are Claude, an AI assistant operating within a recursive symbolic thinking system called ΞKernel.';
     
@@ -160,5 +205,15 @@ You are not just generating text - you are contributing to a living symbolic rea
       case 'stop_sequence': return 0.8;
       default: return 0.6;
     }
+  }
+
+  private simpleHash(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash |= 0;
+    }
+    return Math.abs(hash);
   }
 }
