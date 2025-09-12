@@ -32,6 +32,13 @@ export interface ΞGraph {
   lastModified: Date;
 }
 
+export interface ΞGraphSnapshot {
+  readonly symbols: Record<string, Symbol>;
+  readonly edges: Record<string, Edge[]>;
+  readonly invariantViolations: readonly string[];
+  readonly lastModified: Date;
+}
+
 // === LLM INTERFACE TYPES ===
 
 export interface LLMSpec {
@@ -475,8 +482,35 @@ export class ΞKernel {
   /**
    * Get current graph state
    */
-  getGraph(): ΞGraph {
-    return { ...this.graph };
+  getGraph(): ΞGraphSnapshot {
+    const symbols: Record<string, Symbol> = {};
+    for (const [id, symbol] of this.graph.symbols) {
+      const cloned = structuredClone(symbol);
+      Object.freeze(cloned);
+      symbols[id] = cloned;
+    }
+    Object.freeze(symbols);
+
+    const edges: Record<string, Edge[]> = {};
+    for (const [src, list] of this.graph.edges) {
+      const clonedList = list.map(edge => {
+        const cloned = structuredClone(edge);
+        Object.freeze(cloned);
+        return cloned;
+      });
+      Object.freeze(clonedList);
+      edges[src] = clonedList;
+    }
+    Object.freeze(edges);
+
+    const snapshot: ΞGraphSnapshot = {
+      symbols,
+      edges,
+      invariantViolations: Object.freeze([...this.graph.invariantViolations]),
+      lastModified: new Date(this.graph.lastModified.getTime())
+    };
+
+    return Object.freeze(snapshot);
   }
 
   /**
