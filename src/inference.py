@@ -20,7 +20,10 @@ class InferenceEngine:
         inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
         with torch.no_grad():
             outputs = self.model(**inputs)
-        logits = outputs.logits.cpu().numpy().tolist()[0]
+        logits_np = outputs.logits.cpu().numpy()
+        if logits_np.shape[0] != 1:
+            raise ValueError(f"Expected batch size of 1, but got {logits_np.shape[0]}. Please provide a single sequence input.")
+        logits = logits_np[0].tolist()
         probs = F.softmax(torch.tensor(logits), dim=0).numpy().tolist()
         # highest confidence
         idx = int(torch.tensor(probs).argmax().item())
