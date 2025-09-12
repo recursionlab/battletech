@@ -16,7 +16,9 @@ inputs = tokenizer(input_text, return_tensors="pt")
 with torch.no_grad():
     outputs = model(**inputs)
 
+# Expect logits shape: [batch_size, num_classes]
 logits = outputs.logits  # raw model scores (not normalized)
+assert logits.dim() == 2, f"Expected logits to have 2 dimensions [batch_size, num_classes], got {logits.shape}"
 probs = F.softmax(logits, dim=1)  # convert to probabilities
 
 # Step 4: Extract prediction
