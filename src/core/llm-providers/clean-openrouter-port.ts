@@ -100,6 +100,7 @@ Respond clearly and concisely. Your output becomes part of a persistent knowledg
         model: data.model,
         cost: this.calculateCost(data.usage),
         timestamp: new Date(),
+        done: false,
         metadata: {
           requestId: data.id,
           symbolId,

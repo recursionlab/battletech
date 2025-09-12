@@ -98,6 +98,7 @@ Respond clearly and thoughtfully. Your output becomes part of a persistent knowl
         model: data.model,
         cost: this.calculateTrueCost(data.usage, data.model), // FIXED COST CALCULATION
         timestamp: new Date(),
+        done: false,
         metadata: {
           requestId: data.id,
           symbolId,

@@ -6,6 +6,8 @@
  */
 
 import { ΞSymbol, ΞPayload, ΞMetadata } from './xi-symbol';
+import { planner } from '../modules/planner';
+import { auditor } from '../modules/auditor';
 
 // === DATA STRUCTURES ===
 
@@ -55,6 +57,7 @@ export interface LLMResponse {
   seed?: number;
   cost?: number;
   timestamp: Date;
+  done?: boolean;
 }
 
 export interface LLMDelta {
@@ -199,7 +202,8 @@ export class MockLLMPort implements LLMPort {
       model: 'mock-gpt-4',
       seed: Math.floor(Math.random() * 10000),
       cost: 0.003,
-      timestamp: new Date()
+      timestamp: new Date(),
+      done: false
     };
   }
 
@@ -510,20 +514,20 @@ export class ΞKernel {
 
     while (steps < maxSteps) {
       steps++;
-      
-      // Pick next action (simplified planner)
-      const spec: LLMSpec = {
-        symbolId: goalId,
-        task: `Step ${steps} toward goal: ${JSON.stringify(goal.payload)}`,
-        context: { step: steps, maxSteps },
-        constraints: { maxTokens: 500, temperature: 0.7 }
-      };
 
-      // Execute through ports
+      const spec = planner.next(goalId, {
+        step: steps,
+        maxSteps,
+        goalPayload: goal.payload
+      });
+
       const response = await this.prompt(`${goalId}_step_${steps}`, spec);
-      
-      // Check if goal is satisfied (simplified)
-      if (response.payload && response.payload.toString().includes('COMPLETE')) {
+
+      if (!auditor.verify(goalId, response)) {
+        break;
+      }
+
+      if (response.done === true) {
         break;
       }
     }

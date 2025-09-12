@@ -3,8 +3,13 @@
 This directory contains feature modules. Each module should be:
 
 - **Self-contained**: Contains all files related to a specific feature
-- **Loosely coupled**: Minimal dependencies on other modules  
+- **Loosely coupled**: Minimal dependencies on other modules
 - **Highly cohesive**: All files serve the same feature
+
+## Available Modules
+
+- planner: selects next action for goals
+- auditor: verifies responses before loop continuation
 
 ## Structure Example:
 ```
