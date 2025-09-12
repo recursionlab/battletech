@@ -10,6 +10,8 @@ export * from './kernel-factory';
 export * from './meta-architecture';
 export * from './self-analyzer';
 export * from './self-upgrade-engine';
+export * from './planner';
+export * from './auditor';
 export * from './xi-kernel';
 export * from './xi-llm-agent';
 export * from './xi-symbol';

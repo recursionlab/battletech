@@ -189,6 +189,7 @@ This repository doesn't just *describe* superintelligence—**it provides the ma
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 - [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 - [SOLID Principles](https://en.wikipedia.org/wiki/SOLID)
+- [Kernel 101](./docs/kernel-101.md) - Core concepts, API surface, and basic usage
 
 **Research**:
 - [META_INDEX](./GAME_CHANGERS/META_INDEX.md) - Complete research overview

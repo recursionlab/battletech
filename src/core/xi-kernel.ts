@@ -6,6 +6,8 @@
  */
 
 import { ΞSymbol, ΞPayload, ΞMetadata } from './xi-symbol';
+import { Planner, DefaultPlanner } from './planner';
+import { Auditor, CompletionAuditor } from './auditor';
 
 // === DATA STRUCTURES ===
 
@@ -62,6 +64,7 @@ export interface LLMResponse {
   seed?: number;
   cost?: number;
   timestamp: Date;
+  meta?: Record<string, any>;
 }
 
 export interface LLMDelta {
@@ -205,7 +208,10 @@ export class MockLLMPort implements LLMPort {
       model: 'mock-gpt-4',
       seed: Math.floor(Math.random() * 10000),
       cost: 0.003,
-      timestamp: new Date()
+      timestamp: new Date(),
+      meta: {
+        complete: spec.context?.step >= spec.context?.maxSteps
+      }
     };
   }
 
@@ -243,9 +249,15 @@ export class ΞKernel {
   private graph: KernelGraph;
   private invariantEnforcer: InvariantEnforcer;
   private llmPort: LLMPort;
+  private planner: Planner;
+  private auditor: Auditor;
   private vectorStore: Map<string, number[]> = new Map();
 
-  constructor(llmPort: LLMPort = new MockLLMPort()) {
+  constructor(
+    llmPort: LLMPort = new MockLLMPort(),
+    planner: Planner = new DefaultPlanner(),
+    auditor: Auditor = new CompletionAuditor()
+  ) {
     this.graph = {
       symbols: new Map(),
       edges: new Map(),
@@ -255,7 +267,9 @@ export class ΞKernel {
 
     this.invariantEnforcer = new InvariantEnforcer();
     this.llmPort = llmPort;
-    
+    this.planner = planner;
+    this.auditor = auditor;
+
     this.initializeCoreInvariants();
   }
 
@@ -479,63 +493,10 @@ export class ΞKernel {
   }
 
   /**
-   * Get current graph state
+   * Get current graph state snapshot (read-only)
    */
   getGraph(): ΞGraph {
-    // Deep freeze utility
-    function deepFreeze<T>(obj: T): T {
-      if (obj === null || typeof obj !== 'object') return obj;
-      Object.getOwnPropertyNames(obj).forEach((prop) => {
-        // @ts-ignore
-        const value = obj[prop];
-        if (value && typeof value === 'object') {
-          deepFreeze(value);
-        }
-      });
-      return Object.freeze(obj);
-    }
 
-    const symbols: Record<string, Symbol> = {};
-    for (const [id, symbol] of this.graph.symbols.entries()) {
-      const clone: Symbol = {
-        id: symbol.id,
-        typ: symbol.typ,
-        payload: symbol.payload,
-        meta: { ...symbol.meta },
-        lineage: [...symbol.lineage]
-      };
-      if (typeof clone.payload === 'object' && clone.payload !== null) {
-        clone.payload = deepFreeze(clone.payload);
-      }
-      deepFreeze(clone.meta);
-      deepFreeze(clone.lineage);
-      symbols[id] = deepFreeze(clone);
-    }
-
-    const edges: Record<string, readonly Edge[]> = {};
-    for (const [id, edgeList] of this.graph.edges.entries()) {
-      edges[id] = edgeList.map(edge => {
-        const clone: Edge = {
-          src: edge.src,
-          dst: edge.dst,
-          rel: edge.rel,
-          weight: edge.weight,
-          warrant: { ...edge.warrant }
-        };
-        Object.freeze(clone.warrant);
-        return Object.freeze(clone);
-      });
-      Object.freeze(edges[id]);
-    }
-
-    const snapshot: ΞGraph = {
-      symbols: Object.freeze(symbols),
-      edges: Object.freeze(edges),
-      invariantViolations: Object.freeze([...this.graph.invariantViolations]),
-      lastModified: new Date(this.graph.lastModified.getTime())
-    };
-
-    return Object.freeze(snapshot);
   }
 
   /**
@@ -562,27 +523,38 @@ export class ΞKernel {
   }> {
     let steps = 0;
     const goal = this.getSymbol(goalId);
-    
+
     if (!goal) {
       throw new Error(`Goal symbol ${goalId} not found`);
     }
 
     while (steps < maxSteps) {
       steps++;
-      
-      // Pick next action (simplified planner)
-      const spec: LLMSpec = {
-        symbolId: goalId,
-        task: `Step ${steps} toward goal: ${JSON.stringify(goal.payload)}`,
-        context: { step: steps, maxSteps },
-        constraints: { maxTokens: 500, temperature: 0.7 }
-      };
 
-      // Execute through ports
-      const response = await this.prompt(`${goalId}_step_${steps}`, spec);
-      
-      // Check if goal is satisfied (simplified)
-      if (response.payload && response.payload.toString().includes('COMPLETE')) {
+      const plan = this.planner.propose({ goal, graph: this.graph, step: steps, maxSteps });
+
+      const response = await this.llmPort.prompt(plan.symbolId, plan);
+
+      const audit = this.auditor.audit(response);
+
+      if (audit.approved) {
+        const symbol = this.createSymbol(plan.symbolId, 'llm_generated', response.payload, {
+          model: response.model,
+          promptHash: this.hashSpec(plan),
+          seed: response.seed,
+          timestamp: response.timestamp.toISOString(),
+          cost: response.cost,
+          tokensUsed: response.tokensUsed,
+          kernelWritten: true,
+          justification: response.justification,
+          confidence: response.confidence,
+          task: plan.task,
+          ...(response.meta || {})
+        });
+        await this.syncToVector(symbol);
+      }
+
+      if (audit.complete) {
         break;
       }
     }
