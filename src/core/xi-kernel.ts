@@ -44,6 +44,13 @@ export interface LLMSpec {
     tools?: string[];
     budget?: number;
   };
+  /**
+   * Optional ID of the parent symbol.
+   * - Must refer to an existing symbol within the current context.
+   * - Cannot be self-referential (i.e., parentId !== symbolId).
+   * - Used to establish hierarchical relationships between symbols.
+   * - If omitted, the symbol is considered a root-level entity.
+   */
   parentId?: string;
 }
 
