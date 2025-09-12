@@ -4,7 +4,7 @@
  * Real LLM provider that connects to OpenAI's API
  */
 
-import { LLMProvider, LLMResponse, SymbolicContext, LLMConfig } from '../xi-llm-agent';
+import { LLMProvider, AgentLLMResponse, SymbolicContext, LLMConfig } from '../xi-llm-agent';
 
 interface OpenAIMessage {
   role: 'system' | 'user' | 'assistant';

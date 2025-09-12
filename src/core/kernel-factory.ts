@@ -5,8 +5,8 @@
  */
 
 import { ΞKernel, MockLLMPort } from './xi-kernel';
-import { OpenAIProvider } from './llm-providers/openai-provider';
-import { AnthropicProvider } from './llm-providers/anthropic-provider';
+import { OpenAIProvider, AnthropicProvider, MockLLMProvider } from './xi-llm-agent';
+import { LLMProviderAdapter } from './llm-adapter';
 import { envConfig } from '../config/environment';
 
 export type ProviderType = 'openai' | 'anthropic' | 'mock';
@@ -37,11 +37,7 @@ export class KernelFactory {
           apiKey: options.apiKey || config.openai.apiKey || ''
         });
         
-        if (!openaiProvider['apiKey']) {
-          throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable.');
-        }
-        
-        return new ΞKernel(openaiProvider);
+        return new ΞKernel(new LLMProviderAdapter(openaiProvider));
 
       case 'anthropic':
         const anthropicProvider = new AnthropicProvider({
@@ -52,14 +48,11 @@ export class KernelFactory {
           apiKey: options.apiKey || config.anthropic.apiKey || ''
         });
         
-        if (!anthropicProvider['apiKey']) {
-          throw new Error('Anthropic API key is required. Set ANTHROPIC_API_KEY environment variable.');
-        }
-        
-        return new ΞKernel(anthropicProvider);
+        return new ΞKernel(new LLMProviderAdapter(anthropicProvider));
 
       case 'mock':
-        return new ΞKernel(new MockLLMPort());
+        const mockProvider = new MockLLMProvider({ provider: 'mock' });
+        return new ΞKernel(new LLMProviderAdapter(mockProvider));
 
       default:
         throw new Error(`Unknown provider: ${options.provider}`);

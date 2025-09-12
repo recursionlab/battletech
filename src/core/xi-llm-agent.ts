@@ -15,7 +15,7 @@ export interface LLMConfig {
   apiKey?: string;
 }
 
-export interface LLMResponse {
+export interface AgentLLMResponse {
   content: string;
   reasoning?: string;
   confidence?: number;
@@ -45,7 +45,7 @@ export abstract class LLMProvider {
     prompt: string, 
     context: SymbolicContext,
     systemPrompt?: string
-  ): Promise<LLMResponse>;
+  ): Promise<AgentLLMResponse>;
 }
 
 /**
@@ -56,7 +56,7 @@ export class MockLLMProvider extends LLMProvider {
     prompt: string, 
     context: SymbolicContext,
     systemPrompt?: string
-  ): Promise<LLMResponse> {
+  ): Promise<AgentLLMResponse> {
     // Simulate AI thinking with context awareness
     const thinking = [
       `I'm thinking about: ${prompt}`,
@@ -80,27 +80,26 @@ export class MockLLMProvider extends LLMProvider {
 }
 
 /**
- * OpenAI Provider (would need API integration)
+ * OpenAI Provider (placeholder implementation)
  */
 export class OpenAIProvider extends LLMProvider {
   async generate(
     prompt: string, 
     context: SymbolicContext,
     systemPrompt?: string
-  ): Promise<LLMResponse> {
-    // This would integrate with OpenAI API
-    // For now, return structured placeholder
+  ): Promise<AgentLLMResponse> {
+    // This is a placeholder implementation that indicates integration is needed
     const contextualPrompt = this.buildContextualPrompt(prompt, context, systemPrompt);
     
-    // TODO: Actual OpenAI API call would go here
     return {
-      content: `[OpenAI Integration Needed]\nPrompt: ${contextualPrompt}`,
-      reasoning: "Would use OpenAI API with symbolic context",
-      confidence: 0.8,
+      content: `[OpenAI Integration Needed]\nTo use OpenAI GPT models, please implement the full API integration.\n\nPrompt: ${contextualPrompt.slice(0, 200)}...`,
+      reasoning: "OpenAI provider requires API key and implementation",
+      confidence: 0.1,
       metadata: {
         provider: 'openai',
         model: this.config.model || 'gpt-4',
-        contextTokens: contextualPrompt.length
+        contextTokens: contextualPrompt.length,
+        requiresImplementation: true
       }
     };
   }
@@ -128,12 +127,59 @@ Important: Your response will become part of a recursive symbolic structure. Con
 }
 
 /**
+ * Anthropic Provider (placeholder implementation)
+ */
+export class AnthropicProvider extends LLMProvider {
+  async generate(
+    prompt: string, 
+    context: SymbolicContext,
+    systemPrompt?: string
+  ): Promise<AgentLLMResponse> {
+    // This is a placeholder implementation that indicates integration is needed
+    const contextualPrompt = this.buildContextualPrompt(prompt, context, systemPrompt);
+    
+    return {
+      content: `[Anthropic Integration Needed]\nTo use Anthropic Claude, please implement the full API integration.\n\nPrompt: ${contextualPrompt.slice(0, 200)}...`,
+      reasoning: "Anthropic provider requires API key and implementation",
+      confidence: 0.1,
+      metadata: {
+        provider: 'anthropic',
+        model: this.config.model || 'claude-3-sonnet',
+        contextTokens: contextualPrompt.length,
+        requiresImplementation: true
+      }
+    };
+  }
+
+  private buildContextualPrompt(
+    prompt: string, 
+    context: SymbolicContext, 
+    systemPrompt?: string
+  ): string {
+    return `
+System: ${systemPrompt || 'You are Claude, an AI assistant operating within a recursive symbolic thinking system.'}
+
+Symbolic Context:
+- Path: ${context.symbolPath.join(' → ')}
+- Depth: ${context.recursionDepth}
+- Parent: ${JSON.stringify(context.parentPayload)}
+- Siblings: ${JSON.stringify(context.siblingPayloads)}
+- Memory Available: ${context.memoryKeys.join(', ')}
+
+Task: ${prompt}
+
+Important: Your response will become part of a recursive symbolic structure. Consider how your output relates to the broader symbolic context and what child symbols might need to be spawned.
+    `.trim();
+  }
+}
+
+/**
  * ΞLLMAgent - LLM that operates as a ΞSymbol
  */
 export class ΞLLMAgent extends ΞSymbol {
   private provider: LLMProvider;
   private systemPrompt: string;
-  private lastResponse: LLMResponse | null = null;
+  private lastResponse: AgentLLMResponse | null = null;
 
   constructor(
     id: string,
@@ -215,7 +261,7 @@ export class ΞLLMAgent extends ΞSymbol {
   /**
    * Parse LLM response and spawn child symbols if indicated
    */
-  private async parseAndSpawnChildren(response: LLMResponse): Promise<void> {
+  private async parseAndSpawnChildren(response: AgentLLMResponse): Promise<void> {
     // Simple pattern matching for symbol spawning
     // In practice, this could be more sophisticated
     const spawnMatches = response.content.match(/SPAWN:\s*(\w+):\s*([^\n]+)/gi);
@@ -253,7 +299,7 @@ export class ΞLLMAgent extends ΞSymbol {
   /**
    * Get the last LLM response for introspection
    */
-  getLastResponse(): LLMResponse | null {
+  getLastResponse(): AgentLLMResponse | null {
     return this.lastResponse;
   }
 

@@ -4,7 +4,7 @@
  * Real LLM provider that connects to Anthropic's Claude API
  */
 
-import { LLMProvider, LLMResponse, SymbolicContext, LLMConfig } from '../xi-llm-agent';
+import { LLMProvider, AgentLLMResponse, SymbolicContext, LLMConfig } from '../xi-llm-agent';
 
 interface AnthropicMessage {
   role: 'user' | 'assistant';
