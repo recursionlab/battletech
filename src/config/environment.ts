@@ -5,6 +5,13 @@
  */
 
 interface KernelConfig {
+  openrouter: {
+    apiKey?: string;
+    model: string;
+    temperature: number;
+    maxTokens: number;
+    siteName: string;
+  };
   openai: {
     apiKey?: string;
     model: string;
@@ -42,6 +49,19 @@ class EnvironmentConfig {
     const env = typeof process !== 'undefined' ? process.env : {};
 
     return {
+      openrouter: {
+        apiKey: env.OPENROUTER_API_KEY,
+        model: env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha',
+        temperature: (() => {
+          const temp = parseFloat(env.OPENROUTER_TEMPERATURE || '0.7');
+          return isNaN(temp) ? 0.7 : temp;
+        })(),
+        maxTokens: (() => {
+          const parsed = parseInt(env.OPENROUTER_MAX_TOKENS || '2000', 10);
+          return Number.isInteger(parsed) && parsed > 0 ? parsed : 2000;
+        })(),
+        siteName: env.OPENROUTER_SITE_NAME || 'ΞKernel'
+      },
       openai: {
         apiKey: env.OPENAI_API_KEY,
         model: env.OPENAI_MODEL || 'gpt-4',
@@ -74,8 +94,14 @@ class EnvironmentConfig {
   validateConfig(): { valid: boolean; missing: string[] } {
     const missing: string[] = [];
 
-    if (!this.config.openai.apiKey && !this.config.anthropic.apiKey) {
-      missing.push('At least one API key (OPENAI_API_KEY or ANTHROPIC_API_KEY) is required');
+    if (
+      !this.config.openrouter.apiKey &&
+      !this.config.openai.apiKey &&
+      !this.config.anthropic.apiKey
+    ) {
+      missing.push(
+        'At least one API key (OPENROUTER_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY) is required'
+      );
     }
 
     return {
@@ -86,7 +112,11 @@ class EnvironmentConfig {
 
   getAvailableProviders(): string[] {
     const providers: string[] = [];
-    
+
+    if (this.config.openrouter.apiKey) {
+      providers.push('openrouter');
+    }
+
     if (this.config.openai.apiKey) {
       providers.push('openai');
     }
