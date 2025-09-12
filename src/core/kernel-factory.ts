@@ -5,8 +5,8 @@
  */
 
 import { ΞKernel, MockLLMPort } from './xi-kernel';
-import { OpenAIProvider } from './llm-providers/openai-provider';
-import { AnthropicProvider } from './llm-providers/anthropic-provider';
+import { OpenAIPort } from './llm-providers/openai-port';
+import { AnthropicPort } from './llm-providers/anthropic-port';
 import { envConfig } from '../config/environment';
 
 export type ProviderType = 'openai' | 'anthropic' | 'mock';
@@ -29,34 +29,30 @@ export class KernelFactory {
 
     switch (options.provider) {
       case 'openai':
-        const openaiProvider = new OpenAIProvider({
-          provider: 'openai',
-          model: options.model || config.openai.model,
-          temperature: options.temperature || config.openai.temperature,
-          maxTokens: options.maxTokens || config.openai.maxTokens,
-          apiKey: options.apiKey || config.openai.apiKey || ''
-        });
-        
-        if (!openaiProvider['apiKey']) {
+        const openaiKey = options.apiKey || config.openai.apiKey || '';
+        if (!openaiKey) {
           throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable.');
         }
-        
-        return new ΞKernel(openaiProvider);
+        const openaiPort = new OpenAIPort({
+          apiKey: openaiKey,
+          model: options.model || config.openai.model,
+          temperature: options.temperature || config.openai.temperature,
+          maxTokens: options.maxTokens || config.openai.maxTokens
+        });
+        return new ΞKernel(openaiPort);
 
       case 'anthropic':
-        const anthropicProvider = new AnthropicProvider({
-          provider: 'anthropic',
-          model: options.model || config.anthropic.model,
-          temperature: options.temperature || config.anthropic.temperature,
-          maxTokens: options.maxTokens || config.anthropic.maxTokens,
-          apiKey: options.apiKey || config.anthropic.apiKey || ''
-        });
-        
-        if (!anthropicProvider['apiKey']) {
+        const anthropicKey = options.apiKey || config.anthropic.apiKey || '';
+        if (!anthropicKey) {
           throw new Error('Anthropic API key is required. Set ANTHROPIC_API_KEY environment variable.');
         }
-        
-        return new ΞKernel(anthropicProvider);
+        const anthropicPort = new AnthropicPort({
+          apiKey: anthropicKey,
+          model: options.model || config.anthropic.model,
+          temperature: options.temperature || config.anthropic.temperature,
+          maxTokens: options.maxTokens || config.anthropic.maxTokens
+        });
+        return new ΞKernel(anthropicPort);
 
       case 'mock':
         return new ΞKernel(new MockLLMPort());
