@@ -89,6 +89,7 @@ export class OpenRouterPort implements LLMPort {
         model: response.model,
         cost: this.calculateCost(response.usage, response.model),
         timestamp: new Date(),
+        meta: {},
         metadata: {
           requestId: response.id,
           finishReason: response.choices[0]?.finish_reason,

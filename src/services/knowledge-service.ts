@@ -156,13 +156,14 @@ export class KnowledgeService {
       this.trainingLoader.loadTrainingData(),
       this.knowledgeLoader.loadKnowledgeBase()
     ]);
+    const { lastModified } = this.kernel.getGraph();
 
     return {
       totalDocuments: trainingDocs.length + knowledgeDocs.length,
       totalSymbols: this.documentSymbolMap.size,
       trainingDocuments: trainingDocs.length,
       knowledgeDocuments: knowledgeDocs.length,
-      lastUpdated: new Date()
+      lastUpdated: lastModified
     };
   }
 
