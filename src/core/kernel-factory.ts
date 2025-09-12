@@ -43,29 +43,17 @@ export class KernelFactory {
 
         return new ΞKernel(openrouterProvider);
       case 'openai':
-        const openaiKey = options.apiKey || config.openai.apiKey || '';
-        if (!openaiKey) {
-          throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable.');
-        }
-        const openaiPort = new OpenAIPort({
-          apiKey: openaiKey,
+
           model: options.model || config.openai.model,
           temperature: options.temperature || config.openai.temperature,
           maxTokens: options.maxTokens || config.openai.maxTokens
         });
-        return new ΞKernel(openaiPort);
 
-      case 'anthropic':
-        const anthropicKey = options.apiKey || config.anthropic.apiKey || '';
-        if (!anthropicKey) {
-          throw new Error('Anthropic API key is required. Set ANTHROPIC_API_KEY environment variable.');
-        }
-        const anthropicPort = new AnthropicPort({
-          apiKey: anthropicKey,
           model: options.model || config.anthropic.model,
           temperature: options.temperature || config.anthropic.temperature,
           maxTokens: options.maxTokens || config.anthropic.maxTokens
         });
+
         return new ΞKernel(anthropicPort);
 
       case 'mock':
