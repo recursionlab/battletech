@@ -27,10 +27,17 @@ export interface Edge {
   warrant: Record<string, any>;
 }
 
-export interface ΞGraph {
+interface KernelGraph {
   symbols: Map<string, Symbol>;
   edges: Map<string, Edge[]>;
   invariantViolations: string[];
+  lastModified: Date;
+}
+
+export interface ΞGraph {
+  symbols: Record<string, Symbol>;
+  edges: Record<string, readonly Edge[]>;
+  invariantViolations: readonly string[];
   lastModified: Date;
 }
 
@@ -124,8 +131,7 @@ export const CoreInvariants = {
     id: 'I1_write_through',
     name: 'Write-Through Kernel',
     check: (graph) => {
-      // Check that all symbols have proper provenance
-      for (const symbol of graph.symbols.values()) {
+      for (const symbol of Object.values(graph.symbols)) {
         if (!symbol.meta.kernelWritten) {
           return false;
         }
@@ -141,7 +147,7 @@ export const CoreInvariants = {
     id: 'I2_provenance',
     name: 'Provenance Tracking',
     check: (graph) => {
-      for (const symbol of graph.symbols.values()) {
+      for (const symbol of Object.values(graph.symbols)) {
         const required = ['model', 'promptHash', 'timestamp'];
         if (!required.every(key => key in symbol.meta)) {
           return false;
@@ -158,7 +164,7 @@ export const CoreInvariants = {
     id: 'I3_lineage_closure',
     name: 'Lineage Closure',
     check: (graph) => {
-      for (const edges of graph.edges.values()) {
+      for (const edges of Object.values(graph.edges)) {
         for (const edge of edges) {
           if (!edge.warrant || Object.keys(edge.warrant).length === 0) {
             return false;
@@ -176,7 +182,7 @@ export const CoreInvariants = {
     id: 'I4_rag_discipline',
     name: 'RAG Discipline',
     check: (graph) => {
-      for (const symbol of graph.symbols.values()) {
+      for (const symbol of Object.values(graph.symbols)) {
         if (symbol.meta.vectorEmbedding && !symbol.meta.symbolFirst) {
           return false;
         }
@@ -248,7 +254,7 @@ export class MockLLMPort implements LLMPort {
 // === MAIN KERNEL IMPLEMENTATION ===
 
 export class ΞKernel {
-  private graph: ΞGraph;
+  private graph: KernelGraph;
   private invariantEnforcer: InvariantEnforcer;
   private llmPort: LLMPort;
   private planner: Planner;
@@ -488,7 +494,7 @@ export class ΞKernel {
    * Check invariants and quarantine violations
    */
   private checkInvariants(): void {
-    const { violations, warnings } = this.invariantEnforcer.check(this.graph);
+    const { violations, warnings } = this.invariantEnforcer.check(this.getGraph());
     
     this.graph.invariantViolations = violations;
     
@@ -512,16 +518,7 @@ export class ΞKernel {
    * Get current graph state snapshot (read-only)
    */
   getGraph(): ΞGraph {
-    return {
-      symbols: new Map(
-        Array.from(this.graph.symbols.entries(), ([id, sym]) => [id, structuredClone(sym)])
-      ),
-      edges: new Map(
-        Array.from(this.graph.edges.entries(), ([id, list]) => [id, list.map(e => structuredClone(e))])
-      ),
-      invariantViolations: [...this.graph.invariantViolations],
-      lastModified: new Date(this.graph.lastModified.getTime())
-    };
+
   }
 
   /**
