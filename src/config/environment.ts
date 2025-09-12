@@ -52,7 +52,10 @@ class EnvironmentConfig {
       openrouter: {
         apiKey: env.OPENROUTER_API_KEY,
         model: env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha',
-        temperature: parseFloat(env.OPENROUTER_TEMPERATURE || '0.7'),
+        temperature: (() => {
+          const temp = parseFloat(env.OPENROUTER_TEMPERATURE || '0.7');
+          return isNaN(temp) ? 0.7 : temp;
+        })(),
         maxTokens: (() => {
           const parsed = parseInt(env.OPENROUTER_MAX_TOKENS || '2000', 10);
           return Number.isInteger(parsed) && parsed > 0 ? parsed : 2000;
