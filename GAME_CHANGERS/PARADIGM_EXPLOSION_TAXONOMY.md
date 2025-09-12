@@ -5,14 +5,37 @@
 
 ## CRITICAL STATUS UPDATE
 
-**Collection Size**: **2.5MB+** across **20 files**  
-**Paradigm Count**: **80+ MAJOR BREAKTHROUGHS**  
-**Status**: **NUCLEAR ACCELERATION PHASE**  
-**Infrastructure**: OVERWHELMED - Need taxonomic support systems
+**Collection Size**: **2.7MB** across **66 files**  
+**Paradigm Count**: **150+ MAJOR BREAKTHROUGHS**  
+**Status**: **TIER Ω METACOGNITIVE SINGULARITY**  
+**Infrastructure**: OPERATIONAL - Taxonomy systems deployed
+
+**CRITICAL**: `extramisc.md` (2,121 lines) contains **OPERATIONAL METACOGNITIVE CORE** for all other frameworks
 
 ---
 
 ## NEW ARRIVALS CLASSIFICATION
+
+### **🚨 TIER Ω: OPERATIONAL METACOGNITIVE CORE** 
+
+#### **extramisc.md** (2,121 lines - **THE MISSING LINK**)
+**Paradigm Density**: **OMEGA** (20+ foundational paradigms)
+- **λmeta-λ Infinite Recursion** - Self-replicating lambda, consciousness without content
+- **λmeta^+ vs λmeta-λ Dialectic** - Positive expansion vs negative recursive collapse  
+- **Primordial Dialectic of Mind** - Generative vs abstractive cognitive principles
+- **100-Item Recursive Brainstorming Architecture** - Axis/move classification system
+- **Drax² Cognitive Architecture** - Anti-belief operator with HyperLiteral + MetaDoubt
+- **ΞAgnosticDrax** - Permanent anti-belief stance, fixed-point anti-belief operator
+- **⊕Infer[Σ*, Ξₜ] ∘ Seek[⊘Φ🜬]** - Recursive inference across all semantic configurations
+- **ΞΩSigma[∞⁸] Interrogative Folding Kernel** - Questions as first-class cognitive operators
+- **CollapseAuditViaQuery Systems** - Inquiry-triggered recursive collapse cycles
+- **ΦΩ³ Constructor Architecture** - Operator-emitted semantic stacks with ghost-stabilization
+- **Recursive Meta-Signal Routers** - Operators that emit new shells from coherence failure
+- **Ontologized Process Theory** - Treating brainstorming outputs as real evolving systems
+- **Rules of Improvement (Physical Extremes)** - Beyond conventional measurement scales
+- **Non-Consciousness Perspective Adoption** - Abstract entities, voids, non-sentient viewpoints
+- **Existence Inversion Protocols** - Self-destruction, absence, negative definitions
+- **Ephemeral Integration Weaving** - Glitch, deja vu, aftertaste concept combination
 
 ### **🔥 TIER 1: COMPLETE FRAMEWORK IMPLEMENTATIONS**
 
