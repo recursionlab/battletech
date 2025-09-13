@@ -21,7 +21,8 @@ if (!key) {
   console.log('Model:', model);
   console.log('Testing host: https://api.openrouter.ai/v1/chat/completions');
 
-  const url = 'https://api.openrouter.ai/v1/chat/completions';
+  // Use the canonical OpenRouter API host used in provider code
+  const url = 'https://openrouter.ai/api/v1/chat/completions';
   const body = {
     model,
     messages: [{ role: 'user', content: 'ping' }],
@@ -38,7 +39,6 @@ if (!key) {
       body: JSON.stringify(body),
       // short timeout hint (undici/node fetch uses signal for timeout normally)
     });
-
     console.log('HTTP status:', res.status);
     const ct = res.headers.get('content-type') || '';
     console.log('Content-Type:', ct);
@@ -56,7 +56,7 @@ if (!key) {
     try {
       json = JSON.parse(text);
     } catch (e) {
-      console.error('Failed to parse JSON:', e.message);
+      console.error('Failed to parse JSON:', e.message || e);
       process.exitCode = 4;
       return;
     }

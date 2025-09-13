@@ -17,6 +17,15 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Ensure OPENROUTER_API_KEY is set
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          if [ -z "${OPENROUTER_API_KEY:-}" ]; then
+            echo "ERROR: OPENROUTER_API_KEY secret is not configured for this repository. Please add it under Settings → Secrets."
+            exit 1
+          fi
+
       - name: Install deps
         run: npm ci
 
