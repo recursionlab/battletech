@@ -1,3 +1,4 @@
+<!-- OpenRouter API secret name fixed: OPENROUTER_API -> OPENROUTER_API_KEY -->
 <<<<<<< Updated upstream
 # ∞ Project 119: Battletech Research & Development
 ## **The Recursive Self-Improving Superintelligence Repository**
@@ -84,4 +85,3 @@ npm run dev:web:openrouter
 ```
 
 The server will fall back to a mock LLM if the key is not present, so you can develop without an account.
-
