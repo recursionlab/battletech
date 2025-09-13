@@ -1,3 +1,6 @@
 torch
 transformers
 numpy
+fastapi
+uvicorn
+requests

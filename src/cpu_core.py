@@ -28,6 +28,6 @@ label = id2label[predicted_class.item()]
 
 # Step 6: Print diagnostics
 print("🧠 Raw logits:", logits)
-print("📊 Probabilities:", probs)
+print("📊 Probabilities:", probs) 
 print("🎯 Predicted Class:", label)
 print("🔒 Confidence Score:", confidence.item())

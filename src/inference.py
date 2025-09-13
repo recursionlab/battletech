@@ -1,6 +1,20 @@
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import torch.nn.functional as F
+import json
+from pathlib import Path
+
+
+def _load_model_name_from_config():
+    # Look for config/model_config.json at repo root
+    config_path = Path(__file__).resolve().parents[1] / "config" / "model_config.json"
+    if config_path.exists():
+        try:
+            data = json.loads(config_path.read_text(encoding="utf-8"))
+            return data.get("model_name")
+        except Exception:
+            return None
+    return None
 
 
 class InferenceEngine:
@@ -11,7 +25,9 @@ class InferenceEngine:
     - output: dict {label: str, confidence: float, logits: list}
     """
 
-    def __init__(self, model_name="distilbert-base-uncased-finetuned-sst-2-english", device=None):
+    def __init__(self, model_name: str | None = None, device=None):
+        # Resolve model name from config if not provided explicitly
+        model_name = model_name or _load_model_name_from_config() or "distilbert-base-uncased-finetuned-sst-2-english"
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name).to(self.device)
