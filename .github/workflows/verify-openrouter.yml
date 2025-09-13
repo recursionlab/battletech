@@ -22,8 +22,13 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           if [ -z "${OPENROUTER_API_KEY:-}" ]; then
-            echo "ERROR: OPENROUTER_API_KEY secret is not configured for this repository. Please add it under Settings → Secrets."
+            echo "ERROR: OPENROUTER_API_KEY secret is empty or not accessible"
+            echo "Secret length check: ${#OPENROUTER_API_KEY} characters"
+            echo "First 10 chars (for debugging): ${OPENROUTER_API_KEY:0:10}"
             exit 1
+          else
+            echo "✅ OPENROUTER_API_KEY is present (${#OPENROUTER_API_KEY} characters)"
+            echo "✅ Starts with: ${OPENROUTER_API_KEY:0:10}..."
           fi
 
       - name: Install deps
