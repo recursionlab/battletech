@@ -1,0 +1,25 @@
+name: Prevent root Python files
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-root-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for Python files in repo root
+        run: |
+          set -euo pipefail
+          files=$(git ls-tree --name-only -r HEAD | sed -n '1,200p')
+          # Fail if any .py files are located at repository root (depth 1)
+          root_pys=$(git ls-tree --name-only -r HEAD | while read -r f; do if [[ "$f" =~ ^[^/]+\.py$ ]]; then echo "$f"; fi; done)
+          if [ -n "$root_pys" ]; then
+            echo "Found Python files in repository root:" >&2
+            echo "$root_pys" >&2
+            exit 1
+          fi
+          echo "No root-level Python files found."

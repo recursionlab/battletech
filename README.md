@@ -60,3 +60,28 @@ Note: upstream `GAME_CHANGERS/` and other large content were merged into `origin
 
 
 >>>>>>> Stashed changes
+
+## OpenRouter (optional)
+
+To use a real LLM via OpenRouter, set your API key locally and start the server. Do NOT commit secrets.
+
+1. Create a local `.env` with your key (example in `.env.example`):
+
+```bash
+echo "OPENROUTER_API_KEY=sk-or-..." > .env
+```
+
+2. Start the dev server (loads `.env` automatically):
+
+```bash
+npm run dev:web
+```
+
+3. Or start in fail-fast mode to ensure the key is set:
+
+```bash
+npm run dev:web:openrouter
+```
+
+The server will fall back to a mock LLM if the key is not present, so you can develop without an account.
+

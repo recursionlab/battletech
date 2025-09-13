@@ -1,0 +1,11 @@
+#!/bin/sh
+# Prevent committing Python files at repository root
+set -e
+root_py=$(git diff --cached --name-only --diff-filter=ACM | while read -r f; do if echo "$f" | grep -Eq '^[^/]+\.py$'; then echo "$f"; fi; done)
+if [ -n "$root_py" ]; then
+  echo "Error: attempting to commit Python files at repo root:" >&2
+  echo "$root_py" >&2
+  echo "Move them into src/, test/, models/, or utils/ and try again." >&2
+  exit 1
+fi
+exit 0

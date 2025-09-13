@@ -6,9 +6,16 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:web": "tsx watch src/server.ts",
+  "dev:web:openrouter": "node ./bin/check-openrouter.js && tsx watch src/server.ts",
     "build": "tsc",
+    "build:web": "tsc && echo \"(optional) copy public/ to dist/public if you deploy\"",
     "start": "node dist/index.js",
+    "start:web": "node dist/server.js",
+  "start:openrouter": "node ./bin/check-openrouter.js && node dist/server.js",
     "test": "vitest",
+    "test:smoke": "bash test/smoke/smoke.sh",
+  "verify:openrouter": "node bin/verify-openrouter.js",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
@@ -24,10 +31,12 @@
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.21",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
-    "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
@@ -35,10 +44,13 @@
     "rimraf": "^5.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@types/marked": "^5.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^4.19.2",
     "gray-matter": "^4.0.3",
     "marked": "^16.2.1"
   },
