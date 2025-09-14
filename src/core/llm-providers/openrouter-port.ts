@@ -88,15 +88,7 @@ export class OpenRouterPort implements LLMPort {
         tokensUsed: response.usage.total_tokens,
         model: response.model,
         cost: this.calculateCost(response.usage, response.model),
-        timestamp: new Date(),
-        metadata: {
-          requestId: response.id,
-          finishReason: response.choices[0]?.finish_reason,
-          promptTokens: response.usage.prompt_tokens,
-          completionTokens: response.usage.completion_tokens,
-          symbolId,
-          provider: 'openrouter'
-        }
+        timestamp: new Date()
       };
 
     } catch (error) {
@@ -122,7 +114,7 @@ export class OpenRouterPort implements LLMPort {
     const improveMatches = response.payload.toString().match(/IMPROVE:\s*([^:]+):\s*([^:]+):\s*([\d.]+)/gi);
     
     if (improveMatches) {
-      improveMatches.forEach(match => {
+  improveMatches.forEach((match: string) => {
         const parts = match.match(/IMPROVE:\s*([^:]+):\s*([^:]+):\s*([\d.]+)/i);
         if (parts) {
           deltas.push({
@@ -170,7 +162,7 @@ export class OpenRouterPort implements LLMPort {
     const relationMatches = response.payload.toString().match(/RELATION:\s*([^:]+):\s*([\d.]+):\s*([^\n]+)/gi);
     
     if (relationMatches) {
-      relationMatches.forEach(match => {
+  relationMatches.forEach((match: string) => {
         const parts = match.match(/RELATION:\s*([^:]+):\s*([\d.]+):\s*([^\n]+)/i);
         if (parts) {
           relations.push({
@@ -223,7 +215,7 @@ You are contributing to a living symbolic reasoning process that builds knowledg
   }
 
   private async makeAPICall(request: OpenRouterRequest): Promise<OpenRouterResponse> {
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+  const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
@@ -239,7 +231,7 @@ You are contributing to a living symbolic reasoning process that builds knowledg
       throw new Error(`OpenRouter API error (${response.status}): ${error}`);
     }
 
-    return await response.json();
+  return await response.json() as OpenRouterResponse;
   }
 
   private calculateCost(usage: any, model: string): number {

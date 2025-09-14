@@ -48,7 +48,7 @@ export class CleanOpenRouterPort implements LLMPort {
     maxTokens?: number;
   }) {
     this.apiKey = config.apiKey;
-    this.model = config.model || 'openai/gpt-3.5-turbo';
+  this.model = config.model || 'openrouter/sonoma-dusk-alpha';
     this.temperature = config.temperature || 0.7;
     this.maxTokens = config.maxTokens || 2000;
   }
@@ -89,7 +89,7 @@ Respond clearly and concisely. Your output becomes part of a persistent knowledg
         throw new Error(`OpenRouter API error (${response.status}): ${errorText}`);
       }
 
-      const data: OpenRouterResponse = await response.json();
+  const data = await response.json() as OpenRouterResponse;
       const content = data.choices[0]?.message?.content || '';
 
       return {
@@ -99,12 +99,7 @@ Respond clearly and concisely. Your output becomes part of a persistent knowledg
         tokensUsed: data.usage.total_tokens,
         model: data.model,
         cost: this.calculateCost(data.usage),
-        timestamp: new Date(),
-        metadata: {
-          requestId: data.id,
-          symbolId,
-          provider: 'openrouter'
-        }
+        timestamp: new Date()
       };
 
     } catch (error) {

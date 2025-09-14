@@ -11,5 +11,5 @@ export * from './meta-architecture';
 export * from './self-analyzer';
 export * from './self-upgrade-engine';
 export * from './xi-kernel';
-export * from './xi-llm-agent';
+// export * from './xi-llm-agent'; // Disabled to avoid type name collisions in LLMResponse
 export * from './xi-symbol';

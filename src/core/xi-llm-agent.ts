@@ -8,7 +8,7 @@
 import { ΞSymbol, ΞPayload, ΞMetadata, ΞEvalContext } from './xi-symbol';
 
 export interface LLMConfig {
-  provider: 'openai' | 'anthropic' | 'local' | 'mock';
+  provider: 'local' | 'mock';
   model?: string;
   temperature?: number;
   maxTokens?: number;
@@ -79,53 +79,6 @@ export class MockLLMProvider extends LLMProvider {
   }
 }
 
-/**
- * OpenAI Provider (would need API integration)
- */
-export class OpenAIProvider extends LLMProvider {
-  async generate(
-    prompt: string, 
-    context: SymbolicContext,
-    systemPrompt?: string
-  ): Promise<LLMResponse> {
-    // This would integrate with OpenAI API
-    // For now, return structured placeholder
-    const contextualPrompt = this.buildContextualPrompt(prompt, context, systemPrompt);
-    
-    // TODO: Actual OpenAI API call would go here
-    return {
-      content: `[OpenAI Integration Needed]\nPrompt: ${contextualPrompt}`,
-      reasoning: "Would use OpenAI API with symbolic context",
-      confidence: 0.8,
-      metadata: {
-        provider: 'openai',
-        model: this.config.model || 'gpt-4',
-        contextTokens: contextualPrompt.length
-      }
-    };
-  }
-
-  private buildContextualPrompt(
-    prompt: string, 
-    context: SymbolicContext, 
-    systemPrompt?: string
-  ): string {
-    return `
-System: ${systemPrompt || 'You are an AI agent operating within a recursive symbolic thinking system.'}
-
-Symbolic Context:
-- Path: ${context.symbolPath.join(' → ')}
-- Depth: ${context.recursionDepth}
-- Parent: ${JSON.stringify(context.parentPayload)}
-- Siblings: ${JSON.stringify(context.siblingPayloads)}
-- Memory Available: ${context.memoryKeys.join(', ')}
-
-Task: ${prompt}
-
-Important: Your response will become part of a recursive symbolic structure. Consider how your output relates to the broader symbolic context and what child symbols might need to be spawned.
-    `.trim();
-  }
-}
 
 /**
  * ΞLLMAgent - LLM that operates as a ΞSymbol
@@ -317,27 +270,6 @@ export class ΞLLMAgentFactory {
     );
   }
 
-  static createOpenAIAgent(
-    id: string,
-    focus: string,
-    config: Partial<LLMConfig> = {},
-    metadata: ΞMetadata = {}
-  ): ΞLLMAgent {
-    const provider = new OpenAIProvider({
-      provider: 'openai',
-      model: 'gpt-4',
-      temperature: 0.7,
-      maxTokens: 2000,
-      ...config
-    });
-    
-    return new ΞLLMAgent(
-      id,
-      provider,
-      `You are an OpenAI-powered agent focused on: ${focus}`,
-      metadata
-    );
-  }
 
   static createReasoningChain(
     rootFocus: string,

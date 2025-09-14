@@ -7,38 +7,38 @@ import fs from 'fs';
 import { ΞKernel } from './core/xi-kernel';
 import { OpenRouterLLMPort } from './core/openrouter-port';
 import { MockLLMPort } from './core/xi-kernel';
+import { SimpleOpenRouterPort } from './core/simple-openrouter';
 
 // Initialize kernel (OpenRouter if key present)
 let kernel: ΞKernel;
-const openRouterKey = process.env.OPENROUTER_API_KEY || '';
+const openRouterKey = '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';
+console.log('DEBUG: Using hardcoded API key first 20 chars:', openRouterKey.substring(0, 20) + '...');
+const openRouterForce = /^1|true|yes$/i.test((process.env.OPENROUTER_FORCE || '').toString());
 let usingOpenRouter = false;
 let openRouterReachable = false;
 
 async function probeOpenRouter(key: string): Promise<boolean> {
-  // Small, best-effort probe: call the OpenRouter chat completions endpoint
-  // with a very short timeout. Returns true if we get a JSON response.
+  // Probe using configured base URL and model, short timeout.
+  const rawBase = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
+  const base = rawBase.replace(/\/?$/, '');
+  const url = `${base}/chat/completions`;
+  const model = process.env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha';
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch('https://api.openrouter.ai/v1/chat/completions', {
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${key}`
       },
-      body: JSON.stringify({ model: process.env.OPENROUTER_MODEL || 'gpt-4o-mini', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
       signal: controller.signal
     });
     clearTimeout(id);
     const ct = res.headers.get('content-type') || '';
-    if (!res.ok) {
-      console.warn('OpenRouter probe returned non-OK status', res.status);
-      return false;
-    }
-    if (!ct.includes('application/json')) {
-      console.warn('OpenRouter probe returned non-JSON content-type', ct);
-      return false;
-    }
+    if (!res.ok) return false;
+    if (!ct.includes('application/json')) return false;
     return true;
   } catch (err: any) {
     console.warn('OpenRouter probe failed', err?.message || err);
@@ -47,21 +47,25 @@ async function probeOpenRouter(key: string): Promise<boolean> {
 }
 
 // Initialize kernel: prefer OpenRouter if key present and reachable, otherwise use Mock
-if (openRouterKey) {
+if (openRouterKey && openRouterForce) {
+  kernel = new ΞKernel(new SimpleOpenRouterPort(openRouterKey));
+  usingOpenRouter = true;
+  openRouterReachable = true; // assume reachable when forced
+  console.log('ΞKernel: FORCING SimpleOpenRouterPort usage via OPENROUTER_FORCE');
+} else if (openRouterKey) {
   (async () => {
-    try {
-      openRouterReachable = await probeOpenRouter(openRouterKey);
-      if (openRouterReachable) {
-        kernel = new ΞKernel(new OpenRouterLLMPort(openRouterKey));
-        usingOpenRouter = true;
-        console.log('ΞKernel: using OpenRouterLLMPort (probe succeeded)');
-      } else {
-        console.warn('OpenRouter key present but probe failed; falling back to MockLLMPort');
-        kernel = new ΞKernel(new MockLLMPort());
-      }
-    } catch (err) {
-      console.error('OpenRouter init error, falling back to MockLLMPort', err);
+    const reachable = await probeOpenRouter(openRouterKey);
+    openRouterReachable = reachable;
+    if (reachable) {
+      const baseUrl = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
+      const model = process.env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha';
+      kernel = new ΞKernel(new OpenRouterLLMPort(openRouterKey, { baseUrl, model }));
+      usingOpenRouter = true;
+      console.log('ΞKernel: using OpenRouterLLMPort');
+    } else {
+      console.warn('OpenRouter key present but probe failed; falling back to MockLLMPort');
       kernel = new ΞKernel(new MockLLMPort());
+      usingOpenRouter = false;
     }
   })();
 } else {
@@ -88,7 +92,10 @@ app.post('/api/chat', async (req, res) => {
     return res.json({ symbolId, reply: symbol.payload, meta: symbol.meta });
   } catch (err: any) {
     console.error('chat error', err);
-    return res.status(500).json({ error: 'internal_error', detail: String(err?.message || err) });
+  // Surface minimal diagnostic info
+  const message = (err?.message || '').toString();
+  const code = (err?.code || '').toString();
+  return res.status(500).json({ error: 'internal_error', message, code });
   }
 });
 
@@ -104,7 +111,9 @@ app.get('/status', (_req, res) => {
     openRouterKeyPresent: !!openRouterKey,
     openRouterReachable,
     usingOpenRouter,
-    model: process.env.OPENROUTER_MODEL || null
+  model: process.env.OPENROUTER_MODEL || null,
+  openRouterBaseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+  forced: openRouterForce
   });
 });
 

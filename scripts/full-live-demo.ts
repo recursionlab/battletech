@@ -9,7 +9,7 @@
 import { ΞKernel } from '../src/core/xi-kernel';
 import { CleanOpenRouterPort } from '../src/core/llm-providers/clean-openrouter-port';
 
-const API_KEY = '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';
+const API_KEY = process.env.OPENROUTER_API_KEY || 'sk-or-...';
 
 async function fullDemo() {
   console.log('🚀 FULL ΞKernel + Real AI Demonstration');
@@ -17,7 +17,7 @@ async function fullDemo() {
 
   const port = new CleanOpenRouterPort({
     apiKey: API_KEY,
-    model: 'openai/gpt-3.5-turbo',
+    model: process.env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha',
     temperature: 0.8,
     maxTokens: 400
   });
@@ -44,7 +44,7 @@ async function fullDemo() {
   console.log('------------------------');
   console.log(research.payload);
   console.log();
-  console.log(`📊 Cost: $${research.cost?.toFixed(6)} | Tokens: ${research.tokensUsed}\n`);
+  console.log(`📊 Cost: $${(research.meta.cost || 0).toFixed(6)} | Tokens: ${research.meta.tokensUsed}\n`);
 
   // === DEMO 2: AI Self-Critique ===
   console.log('🔍 DEMO 2: AI Self-Critique & Improvement');
@@ -57,10 +57,10 @@ async function fullDemo() {
 
   console.log('🧠 AI Self-Critique Results:');
   console.log('----------------------------');
-  critiques.forEach((critique, i) => {
-    console.log(`${i + 1}. ${critique.reason}`);
-    console.log(`   Confidence: ${critique.confidence}`);
-    console.log(`   Suggested change: ${JSON.stringify(critique.changes)}\n`);
+  critiques.forEach((sym, i) => {
+    console.log(`${i + 1}. Updated symbol: ${sym.id}`);
+    console.log(`   Confidence: ${sym.meta.confidence}`);
+    console.log(`   Last change at: ${sym.meta.timestamp || sym.meta.modified}\n`);
   });
 
   // === DEMO 3: Multi-Symbol Knowledge Building ===
@@ -82,7 +82,7 @@ async function fullDemo() {
   console.log('------------------------------');
   console.log(implementation.payload);
   console.log();
-  console.log(`📊 Cost: $${implementation.cost?.toFixed(6)} | Tokens: ${implementation.tokensUsed}\n`);
+  console.log(`📊 Cost: $${(implementation.meta.cost || 0).toFixed(6)} | Tokens: ${implementation.meta.tokensUsed}\n`);
 
   // === DEMO 4: AI-Generated Relationships ===
   console.log('🔗 DEMO 4: AI-Generated Knowledge Relationships');
@@ -92,9 +92,9 @@ async function fullDemo() {
 
   console.log('🤖 AI-Discovered Relationships:');
   console.log('-------------------------------');
-  links.forEach((link, i) => {
-    console.log(`${i + 1}. ai_future_analysis --[${link.relation}]--> ai_implementation_strategy`);
-    console.log(`   Confidence: ${link.confidence}\n`);
+  links.forEach((edge, i) => {
+    console.log(`${i + 1}. ai_future_analysis --[${edge.rel}]--> ai_implementation_strategy`);
+    console.log(`   Confidence: ${edge.weight}\n`);
   });
 
   // === DEMO 5: Recursive Problem Solving ===
@@ -132,7 +132,7 @@ async function fullDemo() {
   for (const [id, symbol] of Object.entries(state.symbols)) {
     console.log(`\n📍 ΞSymbol: ${id}`);
     console.log(`   Type: ${symbol.typ}`);
-    console.log(`   AI Model: ${symbol.meta.model || 'openai/gpt-3.5-turbo'}`);
+  console.log(`   AI Model: ${symbol.meta.model || 'openrouter/sonoma-dusk-alpha'}`);
     console.log(`   Content Preview: "${symbol.payload.toString().slice(0, 80)}..."`);
     console.log(`   Cost: $${symbol.meta.cost?.toFixed(6) || '0.000000'}`);
     console.log(`   Tokens: ${symbol.meta.tokensUsed || 0}`);

@@ -7,7 +7,7 @@
 import { ΞKernel } from '../src/core/xi-kernel';
 import { CleanOpenRouterPort } from '../src/core/llm-providers/clean-openrouter-port';
 
-const API_KEY = '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';
+const API_KEY = process.env.OPENROUTER_API_KEY || 'sk-or-...';
 
 async function cleanTest() {
   console.log('🧪 Clean XiKernel + OpenRouter Test');
@@ -16,7 +16,7 @@ async function cleanTest() {
   try {
     const port = new CleanOpenRouterPort({
       apiKey: API_KEY,
-      model: 'openai/gpt-3.5-turbo',
+      model: process.env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha',
       temperature: 0.7,
       maxTokens: 150
     });
@@ -28,7 +28,7 @@ async function cleanTest() {
 
     console.log('🧠 Testing real AI...');
     
-    const response = await kernel.prompt('hello_test', {
+  const symbol = await kernel.prompt('hello_test', {
       symbolId: 'hello_test',
       task: 'Say hello and tell me one interesting fact about AI.',
       context: { test: true },
@@ -37,14 +37,14 @@ async function cleanTest() {
 
     console.log('\n🎉 SUCCESS! Real AI Response:');
     console.log('=============================');
-    console.log(response.payload);
+  console.log(symbol.payload);
     console.log();
     
     console.log('📊 Response Details:');
-    console.log(`   Model Used: ${response.model}`);
-    console.log(`   Tokens: ${response.tokensUsed}`);
-    console.log(`   Cost: $${response.cost?.toFixed(6) || '0.000000'}`);
-    console.log(`   Timestamp: ${response.timestamp}`);
+  console.log(`   Model Used: ${symbol.meta.model}`);
+  console.log(`   Tokens: ${symbol.meta.tokensUsed}`);
+  console.log(`   Cost: $${(symbol.meta.cost || 0).toFixed(6)}`);
+  console.log(`   Timestamp: ${symbol.meta.timestamp || symbol.meta.created}`);
 
     // Test the kernel state
     const state = kernel.exportState();

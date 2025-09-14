@@ -21,13 +21,36 @@ export class OpenRouterLLMPort implements LLMPort {
   // Allow the base URL to be overridden by opts or by env var. This
   // enables using an externally-hosted proxy (for example during dev)
   // by setting OPENROUTER_BASE_URL to the proxy URL.
-  this.baseUrl = opts?.baseUrl || process.env.OPENROUTER_BASE_URL || 'https://api.openrouter.ai';
-    // Default model can be overridden via opts or env when constructing
-    this.model = opts?.model || process.env.OPENROUTER_MODEL || 'gpt-4o-mini';
+  // Base URL: prefer env/opts, default to the recommended website API path
+  // Example: https://openrouter.ai/api/v1
+    const rawBase = opts?.baseUrl || process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
+    const normalizeBase = (b: string) => {
+      let u = b.trim().replace(/\/+$/, '');
+      // If user provided root host, append /api/v1
+      if (/^https?:\/\/openrouter\.ai$/i.test(u)) {
+        return u + '/api/v1';
+      }
+      // If user provided /api, append /v1
+      if (/\/api$/i.test(u)) {
+        return u + '/v1';
+      }
+      return u;
+    };
+    this.baseUrl = normalizeBase(rawBase);
+    // Optional: one-time hint for debugging incorrect base URLs
+    if (!/\/api\/v1$/i.test(this.baseUrl)) {
+      console.warn(`OpenRouter base URL unusual: ${this.baseUrl} (expected to end with /api/v1)`);
+    }
+  // Default model: OpenRouter Sonoma; can be overridden via opts or env
+  this.model = opts?.model || process.env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha';
   }
 
   private async callChatAPI(prompt: string, maxTokens = 512): Promise<any> {
-    const url = `${this.baseUrl}/v1/chat/completions`;
+    // Debug: log first 20 chars of API key to verify it's correct
+    console.log('DEBUG: Using API key starting with:', this.apiKey.substring(0, 20) + '...');
+    
+    // Build endpoint from base URL; do not assume host structure
+    const url = `${this.baseUrl}/chat/completions`;
 
     const body = {
       model: this.model,
@@ -35,11 +58,17 @@ export class OpenRouterLLMPort implements LLMPort {
       max_tokens: maxTokens
     };
 
-    const res = await fetch(url, {
+  const referer = process.env.OPENROUTER_SITE_URL || 'http://localhost:8001';
+  // Avoid non-ASCII in headers (undici ByteString restriction)
+  const title = 'XiKernel';
+
+  const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`
+    Authorization: `Bearer ${this.apiKey}`,
+    'HTTP-Referer': referer,
+    'X-Title': title
       },
       body: JSON.stringify(body)
     });
@@ -98,7 +127,7 @@ export class OpenRouterLLMPort implements LLMPort {
 
   // The following methods provide minimal implementations and can be
   // improved to call OpenRouter endpoints for critique/link/embed if available.
-  async critique(symbolId: string, target: Record<string, any>) {
+  async critique(symbolId: string, target: Record<string, any>): Promise<any[]> {
     // Fallback: return an empty critique
     return [];
   }

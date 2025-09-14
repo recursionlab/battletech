@@ -87,7 +87,7 @@ Respond clearly and thoughtfully. Your output becomes part of a persistent knowl
         throw new Error(`OpenRouter API error (${response.status}): ${errorText}`);
       }
 
-      const data: OpenRouterResponse = await response.json();
+  const data = await response.json() as OpenRouterResponse;
       const content = data.choices[0]?.message?.content || '';
 
       return {
@@ -97,15 +97,7 @@ Respond clearly and thoughtfully. Your output becomes part of a persistent knowl
         tokensUsed: data.usage.total_tokens,
         model: data.model,
         cost: this.calculateTrueCost(data.usage, data.model), // FIXED COST CALCULATION
-        timestamp: new Date(),
-        metadata: {
-          requestId: data.id,
-          symbolId,
-          provider: 'openrouter',
-          actualModel: data.model,
-          inputTokens: data.usage.prompt_tokens,
-          outputTokens: data.usage.completion_tokens
-        }
+        timestamp: new Date()
       };
 
     } catch (error) {

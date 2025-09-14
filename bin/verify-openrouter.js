@@ -3,7 +3,7 @@
 // Prints redacted responses to help debug whether the key and network work.
 require('dotenv').config();
 const key = process.env.OPENROUTER_API_KEY;
-const model = process.env.OPENROUTER_MODEL || 'gpt-4o-mini';
+const model = process.env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha';
 
 function redact(s) {
   if (!s) return s;

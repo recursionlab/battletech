@@ -5,11 +5,10 @@
  */
 
 import { ΞKernel, MockLLMPort } from './xi-kernel';
-import { OpenAIProvider } from './llm-providers/openai-provider';
-import { AnthropicProvider } from './llm-providers/anthropic-provider';
+// OpenAI/Anthropic providers removed – OpenRouter or Mock only in this setup
 import { envConfig } from '../config/environment';
 
-export type ProviderType = 'openai' | 'anthropic' | 'mock';
+export type ProviderType = 'mock';
 
 export interface KernelFactoryOptions {
   provider: ProviderType;
@@ -28,36 +27,6 @@ export class KernelFactory {
     const config = envConfig.getConfig();
 
     switch (options.provider) {
-      case 'openai':
-        const openaiProvider = new OpenAIProvider({
-          provider: 'openai',
-          model: options.model || config.openai.model,
-          temperature: options.temperature || config.openai.temperature,
-          maxTokens: options.maxTokens || config.openai.maxTokens,
-          apiKey: options.apiKey || config.openai.apiKey || ''
-        });
-        
-        if (!openaiProvider['apiKey']) {
-          throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable.');
-        }
-        
-        return new ΞKernel(openaiProvider);
-
-      case 'anthropic':
-        const anthropicProvider = new AnthropicProvider({
-          provider: 'anthropic',
-          model: options.model || config.anthropic.model,
-          temperature: options.temperature || config.anthropic.temperature,
-          maxTokens: options.maxTokens || config.anthropic.maxTokens,
-          apiKey: options.apiKey || config.anthropic.apiKey || ''
-        });
-        
-        if (!anthropicProvider['apiKey']) {
-          throw new Error('Anthropic API key is required. Set ANTHROPIC_API_KEY environment variable.');
-        }
-        
-        return new ΞKernel(anthropicProvider);
-
       case 'mock':
         return new ΞKernel(new MockLLMPort());
 
@@ -70,26 +39,15 @@ export class KernelFactory {
    * Create kernel with automatic provider detection
    */
   static async createAuto(): Promise<ΞKernel> {
-    const validation = envConfig.validateConfig();
-    
-    if (!validation.valid) {
+  // With OpenRouter-only focus, if no key is configured elsewhere, use mock
+  const validation = { valid: true } as any;
+  if (!validation.valid) {
       console.warn('No API keys found, using mock provider');
       return this.create({ provider: 'mock' });
     }
-
-    const availableProviders = envConfig.getAvailableProviders();
-    
-    // Prefer OpenAI, fallback to Anthropic, then mock
-    if (availableProviders.includes('openai')) {
-      console.log('🤖 Using OpenAI provider');
-      return this.create({ provider: 'openai' });
-    } else if (availableProviders.includes('anthropic')) {
-      console.log('🤖 Using Anthropic provider');
-      return this.create({ provider: 'anthropic' });
-    } else {
-      console.log('🤖 Using mock provider');
-      return this.create({ provider: 'mock' });
-    }
+  // Default to mock; OpenRouter usage is wired elsewhere (app.ts / ports)
+  console.log('🤖 Using mock provider');
+  return this.create({ provider: 'mock' });
   }
 
   /**
@@ -102,17 +60,16 @@ export class KernelFactory {
   }> {
     try {
       const kernel = await this.createAuto();
-      const config = envConfig.getConfig();
-      const providers = envConfig.getAvailableProviders();
+  const config = envConfig.getConfig();
       
       console.log('✅ ΞKernel initialized successfully');
-      console.log(`📡 Provider: ${providers[0] || 'mock'}`);
+  console.log(`📡 Provider: mock`);
       console.log(`⚙️  Max recursion: ${config.kernel.maxRecursionDepth}`);
       console.log(`💰 Cost tracking: ${config.costs.enableTracking ? 'enabled' : 'disabled'}`);
       
       return {
         kernel,
-        provider: providers[0] || 'mock',
+  provider: 'mock',
         ready: true
       };
       

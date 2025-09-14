@@ -5,18 +5,6 @@
  */
 
 interface KernelConfig {
-  openai: {
-    apiKey?: string;
-    model: string;
-    temperature: number;
-    maxTokens: number;
-  };
-  anthropic: {
-    apiKey?: string;
-    model: string;
-    temperature: number;
-    maxTokens: number;
-  };
   kernel: {
     maxRecursionDepth: number;
     enableVectorSync: boolean;
@@ -41,19 +29,7 @@ class EnvironmentConfig {
     // For browser/other environments, adapt as needed
     const env = typeof process !== 'undefined' ? process.env : {};
 
-    return {
-      openai: {
-        apiKey: env.OPENAI_API_KEY,
-        model: env.OPENAI_MODEL || 'gpt-4',
-        temperature: parseFloat(env.OPENAI_TEMPERATURE || '0.7'),
-        maxTokens: parseInt(env.OPENAI_MAX_TOKENS || '2000')
-      },
-      anthropic: {
-        apiKey: env.ANTHROPIC_API_KEY,
-        model: env.ANTHROPIC_MODEL || 'claude-3-sonnet-20240229',
-        temperature: parseFloat(env.ANTHROPIC_TEMPERATURE || '0.7'),
-        maxTokens: parseInt(env.ANTHROPIC_MAX_TOKENS || '2000')
-      },
+  return {
       kernel: {
         maxRecursionDepth: parseInt(env.KERNEL_MAX_RECURSION_DEPTH || '10'),
         enableVectorSync: env.KERNEL_ENABLE_VECTOR_SYNC !== 'false',
@@ -71,31 +47,9 @@ class EnvironmentConfig {
     return this.config;
   }
 
+  // No-op validation in OpenRouter-only mode
   validateConfig(): { valid: boolean; missing: string[] } {
-    const missing: string[] = [];
-
-    if (!this.config.openai.apiKey && !this.config.anthropic.apiKey) {
-      missing.push('At least one API key (OPENAI_API_KEY or ANTHROPIC_API_KEY) is required');
-    }
-
-    return {
-      valid: missing.length === 0,
-      missing
-    };
-  }
-
-  getAvailableProviders(): string[] {
-    const providers: string[] = [];
-    
-    if (this.config.openai.apiKey) {
-      providers.push('openai');
-    }
-    
-    if (this.config.anthropic.apiKey) {
-      providers.push('anthropic');
-    }
-    
-    return providers;
+    return { valid: true, missing: [] };
   }
 }
 

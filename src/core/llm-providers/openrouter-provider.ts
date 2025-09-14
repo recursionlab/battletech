@@ -73,7 +73,7 @@ export class OpenRouterProvider extends LLMProvider {
     });
 
     const request: OpenRouterRequest = {
-      model: this.config.model || 'openai/gpt-4o-mini', // Affordable default
+      model: this.config.model || 'openrouter/sonoma-dusk-alpha',
       messages,
       temperature: this.config.temperature || 0.7,
       max_tokens: this.config.maxTokens || 2000
@@ -90,10 +90,6 @@ export class OpenRouterProvider extends LLMProvider {
         content,
         reasoning: `Generated via OpenRouter using ${response.model}`,
         confidence: this.estimateConfidence(response.choices[0]?.finish_reason),
-        tokensUsed: response.usage.total_tokens,
-        model: response.model,
-        cost,
-        timestamp: new Date(),
         metadata: {
           requestId: response.id,
           finishReason: response.choices[0]?.finish_reason,
@@ -101,7 +97,11 @@ export class OpenRouterProvider extends LLMProvider {
           completionTokens: response.usage.completion_tokens,
           symbolPath: context.symbolPath.join(' → '),
           recursionDepth: context.recursionDepth,
-          provider: 'openrouter'
+          provider: 'openrouter',
+          tokensUsed: response.usage.total_tokens,
+          model: response.model,
+          cost,
+          timestamp: new Date().toISOString()
         }
       };
 
@@ -151,32 +151,15 @@ You are contributing to a living symbolic reasoning process that persists across
       throw new Error(`OpenRouter API error (${response.status}): ${error}`);
     }
 
-    return await response.json();
+  return await response.json() as OpenRouterResponse;
   }
 
   private calculateCost(usage: any, model: string): number {
     // OpenRouter provides actual costs, but here are some estimates
     // Check https://openrouter.ai/models for current pricing
     const costs: Record<string, { input: number; output: number }> = {
-      // OpenAI models via OpenRouter
-      'openai/gpt-4o': { input: 2.5 / 1000000, output: 10 / 1000000 },
-      'openai/gpt-4o-mini': { input: 0.15 / 1000000, output: 0.6 / 1000000 },
-      'openai/gpt-4-turbo': { input: 10 / 1000000, output: 30 / 1000000 },
-      'openai/gpt-3.5-turbo': { input: 0.5 / 1000000, output: 1.5 / 1000000 },
-      
-      // Anthropic models via OpenRouter
-      'anthropic/claude-3.5-sonnet': { input: 3 / 1000000, output: 15 / 1000000 },
-      'anthropic/claude-3-haiku': { input: 0.25 / 1000000, output: 1.25 / 1000000 },
-      
-      // Meta models (often cheaper)
-      'meta-llama/llama-3.1-70b-instruct': { input: 0.59 / 1000000, output: 0.79 / 1000000 },
-      'meta-llama/llama-3.1-8b-instruct': { input: 0.055 / 1000000, output: 0.055 / 1000000 },
-      
-      // Mistral models
-      'mistralai/mistral-7b-instruct': { input: 0.06 / 1000000, output: 0.06 / 1000000 },
-      
-      // Google models
-      'google/gemini-flash-1.5': { input: 0.075 / 1000000, output: 0.3 / 1000000 }
+      // Sonoma (example cost placeholder; check OpenRouter model page for real rates)
+      'openrouter/sonoma-dusk-alpha': { input: 1 / 1000000, output: 3 / 1000000 }
     };
 
     const modelCost = costs[model] || { input: 1 / 1000000, output: 3 / 1000000 }; // Default estimate
@@ -199,35 +182,10 @@ You are contributing to a living symbolic reasoning process that persists across
    */
   static getRecommendedModels(): Record<string, { name: string; description: string; costLevel: 'low' | 'medium' | 'high' }> {
     return {
-      'openai/gpt-4o-mini': {
-        name: 'GPT-4o Mini',
-        description: 'Fast and affordable, great for most tasks',
-        costLevel: 'low'
-      },
-      'meta-llama/llama-3.1-8b-instruct': {
-        name: 'Llama 3.1 8B',
-        description: 'Very cheap, good for simple tasks',
-        costLevel: 'low'
-      },
-      'anthropic/claude-3-haiku': {
-        name: 'Claude 3 Haiku', 
-        description: 'Fast and cheap Claude model',
-        costLevel: 'low'
-      },
-      'openai/gpt-4o': {
-        name: 'GPT-4o',
-        description: 'High performance, good reasoning',
+      'openrouter/sonoma-dusk-alpha': {
+        name: 'Sonoma Dusk Alpha',
+        description: 'Primary model for this project via OpenRouter',
         costLevel: 'medium'
-      },
-      'anthropic/claude-3.5-sonnet': {
-        name: 'Claude 3.5 Sonnet',
-        description: 'Excellent reasoning and coding',
-        costLevel: 'medium'
-      },
-      'openai/gpt-4-turbo': {
-        name: 'GPT-4 Turbo',
-        description: 'Most capable OpenAI model',
-        costLevel: 'high'
       }
     };
   }

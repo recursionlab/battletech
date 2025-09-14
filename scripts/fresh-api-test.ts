@@ -7,8 +7,8 @@
 import { ΞKernel } from '../src/core/xi-kernel';
 import { CleanOpenRouterPort } from '../src/core/llm-providers/clean-openrouter-port';
 
-// Your fresh API key
-const API_KEY = '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';
+// Use env key (no hardcoded secrets)
+const API_KEY = process.env.OPENROUTER_API_KEY || 'sk-or-...';
 
 async function testFreshKey() {
   console.log('🔑 Testing Fresh OpenRouter API Key');
@@ -17,7 +17,7 @@ async function testFreshKey() {
   try {
     const port = new CleanOpenRouterPort({
       apiKey: API_KEY,
-      model: 'openai/gpt-3.5-turbo',
+      model: process.env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha',
       temperature: 0.7,
       maxTokens: 200
     });
@@ -30,7 +30,7 @@ async function testFreshKey() {
 
     console.log('🧠 Making first AI call...');
     
-    const response = await kernel.prompt('first_test', {
+  const symbol = await kernel.prompt('first_test', {
       symbolId: 'first_test',
       task: 'Hello! Please respond with: "ΞKernel is now connected to real AI!" and tell me what you are.',
       context: { firstTest: true },
@@ -39,19 +39,19 @@ async function testFreshKey() {
 
     console.log('\n🎉 SUCCESS! Real AI Connected!');
     console.log('==============================');
-    console.log(response.payload);
+  console.log(symbol.payload);
     console.log();
     
     console.log('📊 Connection Details:');
-    console.log(`   ✅ Model: ${response.model}`);
-    console.log(`   ✅ Tokens: ${response.tokensUsed}`);
-    console.log(`   ✅ Cost: $${response.cost?.toFixed(6) || '0.000000'}`);
-    console.log(`   ✅ Provider: ${response.metadata?.provider || 'openrouter'}`);
+  console.log(`   ✅ Model: ${symbol.meta.model}`);
+  console.log(`   ✅ Tokens: ${symbol.meta.tokensUsed}`);
+  console.log(`   ✅ Cost: $${(symbol.meta.cost || 0).toFixed(6)}`);
+  console.log(`   ✅ Provider: openrouter`);
 
     // Test multiple operations
     console.log('\n🧪 Testing Multi-Step Reasoning...');
     
-    const step2 = await kernel.prompt('reasoning_test', {
+  const step2 = await kernel.prompt('reasoning_test', {
       symbolId: 'reasoning_test',
       task: 'Count from 1 to 5 and explain what ΞKernel does in simple terms.',
       context: { step: 2 },
@@ -59,7 +59,7 @@ async function testFreshKey() {
     });
 
     console.log('\n🧠 AI Reasoning Response:');
-    console.log(step2.payload);
+  console.log(step2.payload);
     console.log();
 
     // Show kernel state

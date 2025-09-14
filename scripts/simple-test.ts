@@ -9,7 +9,7 @@
 import { ΞKernel } from '../src/core/xi-kernel';
 import { OpenRouterPort } from '../src/core/llm-providers/openrouter-port';
 
-const API_KEY = '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';
+const API_KEY = process.env.OPENROUTER_API_KEY || 'sk-or-...';
 
 async function simpleTest() {
   console.log('🧪 Simple ΞKernel + OpenRouter Test');
@@ -19,21 +19,21 @@ async function simpleTest() {
     // Use a widely available model
     const port = new OpenRouterPort({
       apiKey: API_KEY,
-      model: 'openai/gpt-3.5-turbo', // Very standard model
+      model: process.env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha',
       temperature: 0.7,
       maxTokens: 200,
       siteName: 'XiKernel'
     });
 
     console.log('✅ OpenRouter port created');
-    console.log('🤖 Using model: openai/gpt-3.5-turbo');
+  console.log(`🤖 Using model: ${process.env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha'}`);
 
     const kernel = new ΞKernel(port);
     console.log('✅ ΞKernel initialized\n');
 
     console.log('🧠 Testing AI response...');
     
-    const response = await kernel.prompt('test_symbol', {
+  const symbol = await kernel.prompt('test_symbol', {
       symbolId: 'test_symbol',
       task: 'Hello! Please respond with a short greeting and confirm you are working.',
       context: { test: true },
@@ -42,13 +42,13 @@ async function simpleTest() {
 
     console.log('\n🎉 SUCCESS! AI Response:');
     console.log('========================');
-    console.log(response.payload);
+  console.log(symbol.payload);
     console.log();
     console.log('📊 Metadata:');
-    console.log(`   Model: ${response.model}`);
-    console.log(`   Tokens: ${response.tokensUsed}`);
-    console.log(`   Cost: $${response.cost?.toFixed(6) || '0.000000'}`);
-    console.log(`   Confidence: ${response.confidence}`);
+  console.log(`   Model: ${symbol.meta.model}`);
+  console.log(`   Tokens: ${symbol.meta.tokensUsed}`);
+  console.log(`   Cost: $${(symbol.meta.cost || 0).toFixed(6)}`);
+  console.log(`   Confidence: ${symbol.meta.confidence}`);
 
     console.log('\n✨ ΞKernel is working with real AI!');
 
