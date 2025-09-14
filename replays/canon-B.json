@@ -1,0 +1,39 @@
+{
+  "traceId": "___ID___",
+  "meta": {
+    "seedPrompt": "Summarize: make a 3-step plan for research."
+  },
+  "steps": [
+    {
+      "i": 0,
+      "text": "Step 1: decompose prompt into subtasks",
+      "confidence": 0.95,
+      "embedding": [
+        0,
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.7
+      ]
+    },
+    {
+      "i": 1,
+      "text": "Step 2: simulate subtasks and merge results",
+      "confidence": 0.92,
+      "embedding": [
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.8
+      ]
+    }
+  ],
+  "finalStateHash": "deadbeef"
+}

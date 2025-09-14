@@ -8,7 +8,7 @@
 
 
 
-
+ 
 ΞOQPF_DerivativeLayer := {
   input: Ψₙ,
   entropyEcho: CollapseEcho(Ψₙ),

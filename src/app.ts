@@ -6,71 +6,19 @@ import fs from 'fs';
 
 import { ΞKernel } from './core/xi-kernel';
 import { OpenRouterLLMPort } from './core/openrouter-port';
-import { MockLLMPort } from './core/xi-kernel';
 import { SimpleOpenRouterPort } from './core/simple-openrouter';
 
-// Initialize kernel (OpenRouter if key present)
-let kernel: ΞKernel;
-const openRouterKey = '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';
-console.log('DEBUG: Using hardcoded API key first 20 chars:', openRouterKey.substring(0, 20) + '...');
-const openRouterForce = /^1|true|yes$/i.test((process.env.OPENROUTER_FORCE || '').toString());
-let usingOpenRouter = false;
-let openRouterReachable = false;
+// Initialize kernel with OpenRouter - no fallback
+const openRouterKey = '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';
+console.log('ΞKernel: Initializing with OpenRouter API');
 
-async function probeOpenRouter(key: string): Promise<boolean> {
-  // Probe using configured base URL and model, short timeout.
-  const rawBase = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
-  const base = rawBase.replace(/\/?$/, '');
-  const url = `${base}/chat/completions`;
-  const model = process.env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha';
-  try {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${key}`
-      },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
-      signal: controller.signal
-    });
-    clearTimeout(id);
-    const ct = res.headers.get('content-type') || '';
-    if (!res.ok) return false;
-    if (!ct.includes('application/json')) return false;
-    return true;
-  } catch (err: any) {
-    console.warn('OpenRouter probe failed', err?.message || err);
-    return false;
-  }
+if (!openRouterKey) {
+  throw new Error('OPENROUTER_API_KEY is required - no mock fallback available');
 }
 
-// Initialize kernel: prefer OpenRouter if key present and reachable, otherwise use Mock
-if (openRouterKey && openRouterForce) {
-  kernel = new ΞKernel(new SimpleOpenRouterPort(openRouterKey));
-  usingOpenRouter = true;
-  openRouterReachable = true; // assume reachable when forced
-  console.log('ΞKernel: FORCING SimpleOpenRouterPort usage via OPENROUTER_FORCE');
-} else if (openRouterKey) {
-  (async () => {
-    const reachable = await probeOpenRouter(openRouterKey);
-    openRouterReachable = reachable;
-    if (reachable) {
-      const baseUrl = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
-      const model = process.env.OPENROUTER_MODEL || 'openrouter/sonoma-dusk-alpha';
-      kernel = new ΞKernel(new OpenRouterLLMPort(openRouterKey, { baseUrl, model }));
-      usingOpenRouter = true;
-      console.log('ΞKernel: using OpenRouterLLMPort');
-    } else {
-      console.warn('OpenRouter key present but probe failed; falling back to MockLLMPort');
-      kernel = new ΞKernel(new MockLLMPort());
-      usingOpenRouter = false;
-    }
-  })();
-} else {
-  kernel = new ΞKernel(new MockLLMPort());
-}
+const kernel = new ΞKernel(new SimpleOpenRouterPort(openRouterKey));
+const usingOpenRouter = true;
+const openRouterReachable = true;
 
 const app = express();
 app.use(cors());
@@ -115,6 +63,115 @@ app.get('/status', (_req, res) => {
   openRouterBaseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
   forced: openRouterForce
   });
+});
+
+// === GRAPH API ENDPOINTS ===
+
+app.get('/api/graph/export', (_req, res) => {
+  try {
+    const graphState = kernel.exportState();
+    res.json({
+      success: true,
+      data: graphState,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err: any) {
+    console.error('Graph export error:', err);
+    res.status(500).json({ error: 'graph_export_failed', message: err.message });
+  }
+});
+
+app.get('/api/symbols/:id', (req, res) => {
+  try {
+    const symbolId = req.params.id;
+    const symbol = kernel.getSymbol(symbolId);
+
+    if (!symbol) {
+      return res.status(404).json({ error: 'symbol_not_found', symbolId });
+    }
+
+    const edges = kernel.getEdges(symbolId);
+
+    res.json({
+      success: true,
+      data: {
+        symbol,
+        edges,
+        edgeCount: edges.length
+      }
+    });
+  } catch (err: any) {
+    console.error('Symbol fetch error:', err);
+    res.status(500).json({ error: 'symbol_fetch_failed', message: err.message });
+  }
+});
+
+app.post('/api/critique/:symbolId', async (req, res) => {
+  try {
+    const symbolId = req.params.symbolId;
+    const target = req.body.target || {};
+
+    const critiques = await kernel.critique(symbolId, target);
+
+    res.json({
+      success: true,
+      data: {
+        symbolId,
+        critiques,
+        count: critiques.length
+      }
+    });
+  } catch (err: any) {
+    console.error('Critique error:', err);
+    res.status(500).json({ error: 'critique_failed', message: err.message });
+  }
+});
+
+app.post('/api/link', async (req, res) => {
+  try {
+    const { symbolA, symbolB, relationSpec } = req.body;
+
+    if (!symbolA || !symbolB || !relationSpec) {
+      return res.status(400).json({
+        error: 'missing_parameters',
+        required: ['symbolA', 'symbolB', 'relationSpec']
+      });
+    }
+
+    const edges = await kernel.link(symbolA, symbolB, relationSpec);
+
+    res.json({
+      success: true,
+      data: {
+        edges,
+        count: edges.length,
+        relation: relationSpec
+      }
+    });
+  } catch (err: any) {
+    console.error('Link error:', err);
+    res.status(500).json({ error: 'link_failed', message: err.message });
+  }
+});
+
+app.get('/api/invariants', (_req, res) => {
+  try {
+    const graphState = kernel.getGraph();
+
+    res.json({
+      success: true,
+      data: {
+        violations: graphState.invariantViolations,
+        violationCount: graphState.invariantViolations.length,
+        lastModified: graphState.lastModified,
+        totalSymbols: graphState.symbols.size,
+        totalEdges: Array.from(graphState.edges.values()).reduce((sum, edges) => sum + edges.length, 0)
+      }
+    });
+  } catch (err: any) {
+    console.error('Invariants check error:', err);
+    res.status(500).json({ error: 'invariants_check_failed', message: err.message });
+  }
 });
 
 export { app, kernel };
